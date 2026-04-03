@@ -1,117 +1,210 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useStore } from '../../hooks/useStore';
 import { SEVERITY_MAP } from '../../data/mockData';
+import { GoogleMap, useJsApiLoader, Marker, Polyline, InfoWindow, DirectionsService, DirectionsRenderer } from '@react-google-maps/api';
 
-// Fix leaflet default icon
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+const libraries = ['places'];
+const mapContainerStyle = { width: '100%', height: '100%' };
 
-function hospitalIcon(loadPct, isTarget = false) {
-  const color = loadPct >= 90 ? '#e84545' : loadPct >= 70 ? '#f59e0b' : '#10b981';
-  const size  = isTarget ? 20 : 14;
-  const ring  = isTarget ? 28 : 20;
-  return L.divIcon({
-    className: '',
-    html: `<div style="position:relative;width:${ring}px;height:${ring}px;display:flex;align-items:center;justify-content:center;">
-      <div style="position:absolute;inset:0;border-radius:50%;background:${color}22;${isTarget ? `animation:ping 2s infinite;` : ''}"></div>
-      <div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid ${isTarget ? '#fff' : color + '88'};box-shadow:0 0 ${isTarget ? 10 : 6}px ${color}88;"></div>
-    </div>`,
-    iconSize:   [ring, ring],
-    iconAnchor: [ring / 2, ring / 2],
-  });
-}
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''; // Needs actual key
 
-function ambulanceIcon(severity) {
-  const meta  = SEVERITY_MAP[severity] || SEVERITY_MAP[2];
-  return L.divIcon({
-    className: '',
-    html: `<div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
-      <div style="position:absolute;inset:0;border-radius:50%;background:${meta.color}33;animation:ping 1.5s infinite;"></div>
-      <div style="width:16px;height:16px;border-radius:4px;background:${meta.color};border:2px solid #fff;box-shadow:0 0 8px ${meta.color}99;font-size:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;">🚑</div>
-    </div>`,
-    iconSize:   [24, 24],
-    iconAnchor: [12, 12],
-  });
+const mapOptions = {
+  disableDefaultUI: true,
+  zoomControl: true,
+  styles: [
+    { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+    {
+      featureType: 'administrative.locality',
+      elementType: 'labels.text.fill',
+      stylers: [{ color: '#d59563' }]
+    },
+    {
+      featureType: 'road',
+      elementType: 'geometry',
+      stylers: [{ color: '#38414e' }]
+    },
+    {
+      featureType: 'road',
+      elementType: 'geometry.stroke',
+      stylers: [{ color: '#212a37' }]
+    },
+    {
+      featureType: 'road',
+      elementType: 'labels.text.fill',
+      stylers: [{ color: '#9ca5b3' }]
+    },
+    {
+      featureType: 'water',
+      elementType: 'geometry',
+      stylers: [{ color: '#17263c' }]
+    },
+    {
+      featureType: 'water',
+      elementType: 'labels.text.fill',
+      stylers: [{ color: '#515c6d' }]
+    },
+    {
+      featureType: 'water',
+      elementType: 'labels.text.stroke',
+      stylers: [{ color: '#17263c' }]
+    }
+  ],
+};
+
+function getHospitalMarkerColor(loadPct) {
+  return loadPct >= 90 ? '#e84545' : loadPct >= 70 ? '#f59e0b' : '#10b981';
 }
 
 export default function MapEmbed({ targetHospitalId, height = '100%', showAllHospitals = true }) {
-  const hospitals  = useStore(s => s.hospitals);
+  const hospitals = useStore(s => s.hospitals);
   const ambulances = useStore(s => s.ambulances);
-  const patients   = useStore(s => s.patients);
-  const center     = [19.0400, 72.8500];
+  const patients = useStore(s => s.patients);
+  const center = useMemo(() => ({ lat: 19.0400, lng: 72.8500 }), []);
+
+  const [activeMarker, setActiveMarker] = useState(null);
+  const [directionsResponse, setDirectionsResponse] = useState(null);
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries
+  });
 
   const activeAmbulances = ambulances.filter(a => a.status === 'en_route_to_hospital' || a.status === 'on_scene');
+  const targetHospital = hospitals.find(h => h.id === targetHospitalId);
+
+  // Directions callback
+  const directionsCallback = useCallback((res) => {
+    if (res !== null && res.status === 'OK') {
+      setDirectionsResponse(res);
+    }
+  }, []);
+
+  if (loadError) return <div className="p-4 text-red-500 bg-red-50 rounded">Map cannot be loaded right now. Ensure VITE_GOOGLE_MAPS_API_KEY is placed in your .env file.</div>;
+  if (!isLoaded) return <div className="p-4 text-gray-500 animate-pulse">Loading Google Maps...</div>;
 
   return (
-    <MapContainer center={center} zoom={12} style={{ height, width: '100%', zIndex: 0 }} preferCanvas={true}>
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        maxZoom={19}
-      />
+    <div style={{ height, width: '100%', position: 'relative' }}>
+      {/* Missing API Key Warning */}
+      {!GOOGLE_MAPS_API_KEY && (
+        <div className="absolute top-2 left-2 z-10 bg-rose-50 border border-rose-200 text-rose-800 text-xs px-3 py-1.5 rounded-md shadow-md backdrop-blur-sm opacity-90 max-w-sm">
+          <strong>Notice:</strong> Google Maps loaded in development mode. Add <code className="bg-rose-100 px-1 rounded">VITE_GOOGLE_MAPS_API_KEY</code> to `.env` to enable Directions and remove watermarks.
+        </div>
+      )}
 
-      {/* Hospitals */}
-      {(showAllHospitals ? hospitals : hospitals.filter(h => h.id === targetHospitalId)).map(h => {
-        const isTarget = h.id === targetHospitalId;
-        const pat = patients.filter(p => p.assigned_hospital_id === h.id);
-        return (
-          <Marker key={h.id} position={[h.lat, h.lng]} icon={hospitalIcon(h.current_load_pct, isTarget)}>
-            <Popup>
-              <div style={{ fontFamily: 'Inter, sans-serif', minWidth: 200 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: '#e8ecef', marginBottom: 6 }}>{h.name}</div>
-                <div style={{ fontSize: 11, color: '#7a8a9a', lineHeight: 1.6 }}>
-                  <div>ICU: <b style={{ color: '#e8ecef' }}>{h.avail_icu_beds}/{h.total_icu_beds}</b></div>
-                  <div>Load: <b style={{ color: h.current_load_pct >= 90 ? '#e84545' : h.current_load_pct >= 70 ? '#f59e0b' : '#10b981' }}>{h.current_load_pct}%</b></div>
-                  {h.has_trauma_centre && <div style={{ color: '#10b981', marginTop: 4 }}>✓ Trauma Centre</div>}
-                  {h.has_neurosurgery  && <div style={{ color: '#10b981' }}>✓ Neurosurgery</div>}
-                  {pat.length > 0      && <div style={{ color: '#e84545', marginTop: 4 }}>⚡ {pat.length} incoming</div>}
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
-
-      {/* Ambulances + Route Lines */}
-      {activeAmbulances.map(amb => {
-        const patient  = patients.find(p => p.id === amb.active_patient_id);
-        const hospital = hospitals.find(h => h.id === amb.assigned_hospital_id);
-        const severity = patient?.predicted_severity || 2;
-        return (
-          <React.Fragment key={amb.id}>
-            <Marker position={[amb.current_lat, amb.current_lng]} icon={ambulanceIcon(severity)}>
-              <Popup>
-                <div style={{ fontFamily: 'Inter, sans-serif', minWidth: 180 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: '#e8ecef' }}>{amb.call_sign}</div>
-                  {patient && (
-                    <div style={{ fontSize: 11, color: '#7a8a9a', marginTop: 4, lineHeight: 1.6 }}>
-                      <div>Patient: <b style={{ color: '#e8ecef' }}>{patient.session_code}</b></div>
-                      <div>SRS: <b style={{ color: '#8b5cf6' }}>{Math.round(patient.survivability_score * 100)}%</b></div>
-                      <div style={{ marginTop: 4 }}>En route to: <b style={{ color: '#e8ecef' }}>{hospital?.name}</b></div>
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={center}
+        zoom={12}
+        options={mapOptions}
+      >
+        {/* Hospitals */}
+        {(showAllHospitals ? hospitals : hospitals.filter(h => h.id === targetHospitalId)).map(h => {
+          const isTarget = h.id === targetHospitalId;
+          const pat = patients.filter(p => p.assigned_hospital_id === h.id);
+          
+          return (
+            <Marker
+              key={h.id}
+              position={{ lat: h.lat, lng: h.lng }}
+              onClick={() => setActiveMarker(h.id)}
+              icon={{
+                path: 0, // CIRCLE
+                fillColor: getHospitalMarkerColor(h.current_load_pct),
+                fillOpacity: 1,
+                strokeWeight: isTarget ? 3 : 1,
+                strokeColor: '#ffffff',
+                scale: isTarget ? 10 : 6
+              }}
+            >
+              {activeMarker === h.id && (
+                <InfoWindow onCloseClick={() => setActiveMarker(null)}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', minWidth: 200, color: '#1f2937' }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{h.name}</div>
+                    <div style={{ fontSize: 11, lineHeight: 1.6 }}>
+                      <div>ICU: <b>{h.avail_icu_beds}/{h.total_icu_beds}</b></div>
+                      <div>Load: <b style={{ color: h.current_load_pct >= 90 ? '#e84545' : h.current_load_pct >= 70 ? '#f59e0b' : '#10b981' }}>{h.current_load_pct}%</b></div>
+                      {pat.length > 0 && <div className="text-rose-600 mt-1">⚡ {pat.length} incoming</div>}
                     </div>
-                  )}
-                </div>
-              </Popup>
+                  </div>
+                </InfoWindow>
+              )}
             </Marker>
-            {hospital && (
-              <Polyline
-                positions={[[amb.current_lat, amb.current_lng], [hospital.lat, hospital.lng]]}
-                color={SEVERITY_MAP[severity]?.color || '#3b82f6'}
-                weight={2.5}
-                dashArray="6 8"
-                opacity={0.75}
-              />
-            )}
-          </React.Fragment>
-        );
-      })}
-    </MapContainer>
+          );
+        })}
+
+        {/* Ambulances */}
+        {activeAmbulances.map(amb => {
+          const patient = patients.find(p => p.id === amb.active_patient_id);
+          const severity = patient?.predicted_severity || 2;
+          const meta = SEVERITY_MAP[severity];
+          
+          return (
+            <Marker
+              key={amb.id}
+              position={{ lat: amb.current_lat, lng: amb.current_lng }}
+              onClick={() => setActiveMarker(amb.id)}
+              label={{ text: "🚑", fontSize: "14px" }}
+              icon={{
+                path: 'M -1,0 A 1,1 0 0 0 -3,0 1,1 0 0 0 -1,0 M 1,0 A 1,1 0 0 0 3,0 1,1 0 0 0 1,0 M -3,3 Q 0,5 3,3', // Fallback shape
+                fillColor: meta?.color || '#3b82f6',
+                fillOpacity: 1,
+                strokeWeight: 2,
+                strokeColor: '#ffffff',
+                scale: 5
+              }}
+            >
+              {activeMarker === amb.id && (
+                <InfoWindow onCloseClick={() => setActiveMarker(null)}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', minWidth: 150, color: '#1f2937' }}>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{amb.call_sign}</div>
+                    {patient && (
+                      <div style={{ fontSize: 11, marginTop: 4, lineHeight: 1.6 }}>
+                        <div>Patient: <b>{patient.session_code}</b></div>
+                        <div>SRS: <b style={{ color: '#8b5cf6' }}>{Math.round(patient.survivability_score * 100)}%</b></div>
+                      </div>
+                    )}
+                  </div>
+                </InfoWindow>
+              )}
+            </Marker>
+          );
+        })}
+
+        {/* Dynamic Directions or Polylines */}
+        {activeAmbulances.map(amb => {
+          const hospital = hospitals.find(h => h.id === amb.assigned_hospital_id);
+          const isSelectedTarget = targetHospitalId === hospital?.id || showAllHospitals;
+          
+          if (!hospital || !isSelectedTarget) return null;
+          
+          const origin = { lat: amb.current_lat, lng: amb.current_lng };
+          const destination = { lat: hospital.lat, lng: hospital.lng };
+
+          // If we have an API key, we can try using the routing service.
+          // But to avoid quota explosions on every render/tick, we'll draw straight polylines as base, 
+          // and only calculate Directions if explicitly requested, or we just draw Polylines for speed.
+          // Here we use styled polylines for performance in real-time tracking:
+          return (
+            <Polyline
+              key={`poly-${amb.id}`}
+              path={[origin, destination]}
+              options={{
+                strokeColor: SEVERITY_MAP[patients.find(p => p.id === amb.active_patient_id)?.predicted_severity || 2]?.color || '#3b82f6',
+                strokeOpacity: 0.8,
+                strokeWeight: 3,
+                icons: [{
+                  icon: { path: 1, scale: 3, strokeOpacity: 1 }, // 1 is circle
+                  offset: '0',
+                  repeat: '20px'
+                }]
+              }}
+            />
+          );
+        })}
+      </GoogleMap>
+    </div>
   );
 }

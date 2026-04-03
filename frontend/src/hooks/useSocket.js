@@ -61,6 +61,7 @@ export function useVitalsStream(patientId, intervalMs = 3000) {
     }, intervalMs);
 
     return () => clearInterval(id);
+  }, [patientId, intervalMs]);
 }
 
 export function useHospitalStatusUpdates(hospitalId, intervalMs = 8000) {

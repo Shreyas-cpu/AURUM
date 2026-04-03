@@ -240,8 +240,26 @@ export const useStore = create((set, get) => ({
           console.log('[AURUM] 🚑 Ambulance Location Update:', data);
           get().updateAmbulanceLocation(data.ambulance_id, data.lat, data.lng);
         });
+        socket.on('routing:decision', (data) => {
+          console.log('[AURUM] 🧠 APEX/NEXUS Routing Decision:', data);
+          get().addRoutingEvent(data);
+          get().updatePatientRouting(data.patient_id, data.routed_to_hospital_id, data.survivability_score);
+          get().addNotification({
+            type: 'alert',
+            title: 'Incoming Dispatch',
+            message: `Patient ${data.patient_code || data.patient_id} routed to ${data.hospital_name || data.routed_to_hospital_id}.`,
+          });
+        });
+        socket.on('mce:triggered', (data) => {
+          console.log('[AURUM] ⚡ MCE Batch Routed:', data);
+          get().triggerMCE(data.event_id, data.patient_ids, data.assignments);
+        });
       } catch (err) {
-        console.log('[AURUM] Socket connection failed, offline mode');       
+        console.log('[AURUM] Socket connection failed, offline mode');
+      }
+    }
+  },
+
   runApexPrediction: async (vitals) => {
     set({ isRunningApex: true });
     try {
