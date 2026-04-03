@@ -2,7 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    /* Foundation Colors */
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f8fafc; /* slate-50 */
+    --color-bg-tertiary: #f1f5f9;  /* slate-100 */
+    
+    /* Text Colors */
+    --color-text-primary: #0f172a;   /* slate-900 */
+    --color-text-secondary: #475569; /* slate-600 */
+    --color-text-muted: #94a3b8;     /* slate-400 */
+    
+    /* Soft Accents */
+    --color-accent-blue-soft: #eff6ff; /* blue-50 */
+    --color-accent-blue-main: #3b82f6; /* blue-500 */
+    --color-accent-blue-hover: #2563eb; /* blue-600 */
+    
+    --color-accent-green-soft: #ecfdf5; /* emerald-50 */
+    --color-accent-green-main: #10b981; /* emerald-500 */
+    
+    --color-accent-red-soft: #fff1f2;   /* rose-50 */
+    --color-accent-red-main: #f43f5e;   /* rose-500 */
+
+    --color-accent-yellow-soft: #fffbeb; /* amber-50 */
+    --color-accent-yellow-main: #f59e0b; /* amber-500 */
+
+    /* Borders */
+    --color-border-light: #e2e8f0; /* slate-200 */
+    --color-border-subtle: #f1f5f9; /* slate-100 */
+  }
+
+  body {
+    @apply bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] antialiased;
+  }
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;
+  background-color: var(--color-bg-secondary);
 }
