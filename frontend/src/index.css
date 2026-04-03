@@ -1,45 +1,179 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    /* Foundation Colors */
-    --color-bg-primary: #ffffff;
-    --color-bg-secondary: #f8fafc; /* slate-50 */
-    --color-bg-tertiary: #f1f5f9;  /* slate-100 */
-    
-    /* Text Colors */
-    --color-text-primary: #0f172a;   /* slate-900 */
-    --color-text-secondary: #475569; /* slate-600 */
-    --color-text-muted: #94a3b8;     /* slate-400 */
-    
-    /* Soft Accents */
-    --color-accent-blue-soft: #eff6ff; /* blue-50 */
-    --color-accent-blue-main: #3b82f6; /* blue-500 */
-    --color-accent-blue-hover: #2563eb; /* blue-600 */
-    
-    --color-accent-green-soft: #ecfdf5; /* emerald-50 */
-    --color-accent-green-main: #10b981; /* emerald-500 */
-    
-    --color-accent-red-soft: #fff1f2;   /* rose-50 */
-    --color-accent-red-main: #f43f5e;   /* rose-500 */
+  *, *::before, *::after { box-sizing: border-box; }
 
-    --color-accent-yellow-soft: #fffbeb; /* amber-50 */
-    --color-accent-yellow-main: #f59e0b; /* amber-500 */
-
-    /* Borders */
-    --color-border-light: #e2e8f0; /* slate-200 */
-    --color-border-subtle: #f1f5f9; /* slate-100 */
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #080c10;
+    color: #e8ecef;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  body {
-    @apply bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] antialiased;
-  }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #0f151c; }
+  ::-webkit-scrollbar-thumb { background: #1e2d3d; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2a3d55; }
 }
 
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  background-color: var(--color-bg-secondary);
+@layer components {
+
+  /* ── AURUM CARD ─────────────────────────────────────── */
+  .aurum-card {
+    @apply bg-aurum-surface border border-aurum-border rounded-xl p-5;
+  }
+  .aurum-card-sm {
+    @apply bg-aurum-surface border border-aurum-border rounded-lg p-4;
+  }
+
+  /* ── AURUM BADGE ────────────────────────────────────── */
+  .badge-critical {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide;
+    background: rgba(232,69,69,0.15); color: #e84545; border: 1px solid rgba(232,69,69,0.3);
+  }
+  .badge-high {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide;
+    background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3);
+  }
+  .badge-medium {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide;
+    background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3);
+  }
+  .badge-low {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide;
+    background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3);
+  }
+  .badge-apex {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide;
+    background: rgba(139,92,246,0.15); color: #8b5cf6; border: 1px solid rgba(139,92,246,0.3);
+  }
+
+  /* ── AURUM BUTTON ───────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200;
+    background: #e84545; color: #fff;
+  }
+  .btn-primary:hover { background: #c73535; box-shadow: 0 0 16px rgba(232,69,69,0.4); }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200;
+    background: #151d26; color: #e8ecef; border: 1px solid #1e2d3d;
+  }
+  .btn-secondary:hover { background: #1a2535; border-color: #2a3d55; }
+  .btn-accept {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-sm font-bold transition-all duration-200;
+    background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.4);
+  }
+  .btn-accept:hover { background: rgba(16,185,129,0.3); box-shadow: 0 0 16px rgba(16,185,129,0.35); }
+  .btn-flag {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-sm font-bold transition-all duration-200;
+    background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3);
+  }
+  .btn-flag:hover { background: rgba(245,158,11,0.25); }
+
+  /* ── STATUS DOT ─────────────────────────────────────── */
+  .status-dot {
+    @apply relative inline-flex h-2.5 w-2.5;
+  }
+  .status-dot span:first-child {
+    @apply animate-ping absolute inline-flex h-full w-full rounded-full opacity-75;
+  }
+  .status-dot span:last-child {
+    @apply relative inline-flex rounded-full h-2.5 w-2.5;
+  }
+
+  /* ── VITAL DISPLAY ──────────────────────────────────── */
+  .vital-value {
+    font-family: 'JetBrains Mono', monospace;
+    @apply text-4xl font-bold tabular-nums;
+  }
+  .vital-label {
+    @apply text-xs font-semibold uppercase tracking-widest;
+    color: #4a5a6a;
+  }
+  .vital-unit {
+    @apply text-sm font-medium;
+    color: #7a8a9a;
+  }
+
+  /* ── HOSPITAL LOAD BAR ──────────────────────────────── */
+  .load-bar-track {
+    @apply w-full h-1.5 rounded-full overflow-hidden;
+    background: #1e2d3d;
+  }
+  .load-bar-fill {
+    @apply h-full rounded-full transition-all duration-700;
+  }
+
+  /* ── MAP OVERRIDES ──────────────────────────────────── */
+  .leaflet-container {
+    background: #0d1117 !important;
+    font-family: 'Inter', sans-serif !important;
+  }
+  .leaflet-popup-content-wrapper {
+    background: #0f151c !important;
+    color: #e8ecef !important;
+    border: 1px solid #1e2d3d !important;
+    border-radius: 10px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6) !important;
+  }
+  .leaflet-popup-tip { background: #0f151c !important; }
+  .leaflet-control-zoom a {
+    background: #0f151c !important;
+    color: #e8ecef !important;
+    border-color: #1e2d3d !important;
+  }
+
+  /* ── ECG WAVEFORM ANIMATION ─────────────────────────── */
+  .ecg-line {
+    position: relative;
+    overflow: hidden;
+    height: 40px;
+  }
+  .ecg-line::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(16,185,129,0.15), transparent);
+    animation: ecg-sweep 2s linear infinite;
+  }
+  @keyframes ecg-sweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+  }
+
+  /* ── SHAP BAR ───────────────────────────────────────── */
+  .shap-bar {
+    @apply h-1.5 rounded-full transition-all duration-500;
+  }
+
+  /* ── NAVIGATION ITEM ────────────────────────────────── */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer;
+    color: #7a8a9a;
+  }
+  .nav-item:hover {
+    @apply bg-aurum-surface2;
+    color: #e8ecef;
+  }
+  .nav-item.active {
+    background: rgba(232,69,69,0.1);
+    color: #e84545;
+    border-left: 2px solid #e84545;
+  }
+
+  /* ── SECTION LABEL ──────────────────────────────────── */
+  .section-label {
+    @apply text-xs font-bold uppercase tracking-widest;
+    color: #4a5a6a;
+  }
 }
