@@ -1,16 +1,30 @@
-# React + Vite
+# AURUM (CitySmart) - Frontend Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend component of the **AURUM** project, designed for high-stress municipal management and emergency dispatch. It features a "Soft Professional" aesthetic utilizing a strict color palette of Slate Gray (`#F8F9FB`), Sky Blue (`#185FA5`), and Mint Green (`#2D6A4F`) tailored to ensure maximum clarity and speed for dispatch operators.
 
-Currently, two official plugins are available:
+## Tech Stack
+* **Framework:** React 18 / Vite
+* **Styling:** Tailwind CSS / Custom CSS mapping to the UI specs
+* **Mapping:** Leaflet & React-Leaflet
+* **Icons:** Lucide-React
+* **Charts:** Recharts
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## UI Architecture
+* **Landing & Auth:** Clean and fast authentication flow with intelligent error states.
+* **Pulse (Monitoring):** Live Leaflet-based map with real-time KPI overview metrics.
+* **Ledger (Data):** Dense data-table layout optimized with alternating stripe UI and status pills.
+* **Action (Control):** Critical system toggles and smooth variable sliders with explicit confirmation modals.
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-## Expanding the ESLint configuration
+2. **Start the Development Server:**
+   ```bash
+   npm run dev
+   ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The application will run by default on `http://localhost:5173`.
