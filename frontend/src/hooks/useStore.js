@@ -181,11 +181,28 @@ export const useStore = create((set, get) => ({
   mcePatients: [],
   mceAssignments: [],
 
-  triggerMCE: (eventId, patientIds, assignments) => set({
-    mceActive: true,
-    mceEventId: eventId,
-    mcePatients: patientIds,
-    mceAssignments: assignments,
+  triggerMCE: (eventId, patientIds, assignments) => set(state => {
+    // Also update all patients matched in assignments to instantly reflect their new routes
+    const updatedPatients = state.patients.map(p => {
+      const match = (assignments || []).find(a => a.patient_id === p.id);
+      if (match) {
+        return {
+          ...p,
+          assigned_hospital_id: match.hospital_id,
+          // Arbitrary survivability deduction based on transit
+          survivability_score: p.survivability_score || Math.max(0.2, 0.95 - (match.transit_min || 0) * 0.01)
+        };
+      }
+      return p;
+    });
+
+    return {
+      mceActive: true,
+      mceEventId: eventId,
+      mcePatients: patientIds,
+      mceAssignments: assignments || [],
+      patients: updatedPatients
+    };
   }),
 
   resolveMCE: () => set({
