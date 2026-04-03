@@ -53,15 +53,27 @@ const mapOptions = {
   ],
 };
 
-function getHospitalMarkerColor(loadPct) {
-  return loadPct >= 90 ? '#e84545' : loadPct >= 70 ? '#f59e0b' : '#10b981';
+function getDistance(lat1, lon1, lat2, lon2) {
+  const p = 0.017453292519943295;
+  const c = Math.cos;
+  const a = 0.5 - c((lat2 - lat1) * p)/2 + 
+          c(lat1 * p) * c(lat2 * p) * 
+          (1 - c((lon2 - lon1) * p))/2;
+  return 12742 * Math.asin(Math.sqrt(a)); // 2 * R; R = 6371 km
+}
+
+function getGradientColor(distance, maxDistance) {
+  if (maxDistance === 0) return '#10b981'; // Green
+  const ratio = Math.min(1, Math.max(0, distance / maxDistance));
+  const h = Math.floor((1 - ratio) * 120); // 120 is Green, 0 is Red
+  return `hsl(${h}, 90%, 50%)`;
 }
 
 export default function MapEmbed({ targetHospitalId, height = '100%', showAllHospitals = true }) {
   const hospitals = useStore(s => s.hospitals);
   const ambulances = useStore(s => s.ambulances);
   const patients = useStore(s => s.patients);
-  const center = useMemo(() => ({ lat: 19.0400, lng: 72.8500 }), []);
+  const center = useMemo(() => ({ lat: 18.5204, lng: 73.8567 }), []);
 
   const [activeMarker, setActiveMarker] = useState(null);
   const [directionsResponse, setDirectionsResponse] = useState(null);
@@ -104,7 +116,10 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
         {(showAllHospitals ? hospitals : hospitals.filter(h => h.id === targetHospitalId)).map(h => {
           const isTarget = h.id === targetHospitalId;
           const pat = patients.filter(p => p.assigned_hospital_id === h.id);
-          
+
+          const maxDistance = Math.max(...hospitals.map(hp => getDistance(center.lat, center.lng, hp.lat, hp.lng)), 1);
+          const currentDistance = getDistance(center.lat, center.lng, h.lat, h.lng);
+
           return (
             <Marker
               key={h.id}
@@ -112,7 +127,7 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
               onClick={() => setActiveMarker(h.id)}
               icon={{
                 path: 0, // CIRCLE
-                fillColor: getHospitalMarkerColor(h.current_load_pct),
+                fillColor: getGradientColor(currentDistance, maxDistance),
                 fillOpacity: 1,
                 strokeWeight: isTarget ? 3 : 1,
                 strokeColor: '#ffffff',
@@ -135,76 +150,10 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
           );
         })}
 
-        {/* Ambulances */}
-        {activeAmbulances.map(amb => {
-          const patient = patients.find(p => p.id === amb.active_patient_id);
-          const severity = patient?.predicted_severity || 2;
-          const meta = SEVERITY_MAP[severity];
-          
-          return (
-            <Marker
-              key={amb.id}
-              position={{ lat: amb.current_lat, lng: amb.current_lng }}
-              onClick={() => setActiveMarker(amb.id)}
-              label={{ text: "🚑", fontSize: "14px" }}
-              icon={{
-                path: 'M -1,0 A 1,1 0 0 0 -3,0 1,1 0 0 0 -1,0 M 1,0 A 1,1 0 0 0 3,0 1,1 0 0 0 1,0 M -3,3 Q 0,5 3,3', // Fallback shape
-                fillColor: meta?.color || '#3b82f6',
-                fillOpacity: 1,
-                strokeWeight: 2,
-                strokeColor: '#ffffff',
-                scale: 5
-              }}
-            >
-              {activeMarker === amb.id && (
-                <InfoWindow onCloseClick={() => setActiveMarker(null)}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', minWidth: 150, color: '#1f2937' }}>
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>{amb.call_sign}</div>
-                    {patient && (
-                      <div style={{ fontSize: 11, marginTop: 4, lineHeight: 1.6 }}>
-                        <div>Patient: <b>{patient.session_code}</b></div>
-                        <div>SRS: <b style={{ color: '#8b5cf6' }}>{Math.round(patient.survivability_score * 100)}%</b></div>
-                      </div>
-                    )}
-                  </div>
-                </InfoWindow>
-              )}
-            </Marker>
-          );
-        })}
 
-        {/* Dynamic Directions or Polylines */}
-        {activeAmbulances.map(amb => {
-          const hospital = hospitals.find(h => h.id === amb.assigned_hospital_id);
-          const isSelectedTarget = targetHospitalId === hospital?.id || showAllHospitals;
-          
-          if (!hospital || !isSelectedTarget) return null;
-          
-          const origin = { lat: amb.current_lat, lng: amb.current_lng };
-          const destination = { lat: hospital.lat, lng: hospital.lng };
-
-          // If we have an API key, we can try using the routing service.
-          // But to avoid quota explosions on every render/tick, we'll draw straight polylines as base, 
-          // and only calculate Directions if explicitly requested, or we just draw Polylines for speed.
-          // Here we use styled polylines for performance in real-time tracking:
-          return (
-            <Polyline
-              key={`poly-${amb.id}`}
-              path={[origin, destination]}
-              options={{
-                strokeColor: SEVERITY_MAP[patients.find(p => p.id === amb.active_patient_id)?.predicted_severity || 2]?.color || '#3b82f6',
-                strokeOpacity: 0.8,
-                strokeWeight: 3,
-                icons: [{
-                  icon: { path: 1, scale: 3, strokeOpacity: 1 }, // 1 is circle
-                  offset: '0',
-                  repeat: '20px'
-                }]
-              }}
-            />
-          );
-        })}
-      </GoogleMap>
+        </GoogleMap>
     </div>
   );
 }
+
+

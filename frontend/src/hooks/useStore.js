@@ -26,7 +26,7 @@ export const useStore = create((set, get) => ({
 
   // ─── Hospital State ───────────────────────────────────────────────────
   hospitals: MOCK_HOSPITALS,
-  activeHospitalId: 'hosp-001', // KEM Hospital from mock data
+  activeHospitalId: 'PUN001', // KEM Hospital from mock data
   getActiveHospital: () => get().hospitals.find(h => h.id === get().activeHospitalId),
 
   fetchHospitals: async () => {
@@ -61,6 +61,10 @@ export const useStore = create((set, get) => ({
           set({ hospitals: enriched });
         } else {
           set({ hospitals: data });
+        }
+        const currentHospitals = get().hospitals;
+        if (currentHospitals.length > 0 && !currentHospitals.find(h => h.id === get().activeHospitalId)) {
+          set({ activeHospitalId: currentHospitals[0].id });
         }
       }
     } catch (err) {
@@ -303,8 +307,8 @@ export const useStore = create((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patient_id: patientId,
-          patient_lat: vitals.lat || 19.0120,
-          patient_lng: vitals.lng || 72.8360,
+          patient_lat: vitals.lat || 18.5204,
+          patient_lng: vitals.lng || 73.8567,
           apex_output: { ...apexData, shap_values: apexData.shap_values },
           hospitals_list: get().hospitals.map(h => ({
             ...h,
@@ -374,4 +378,6 @@ export const useStore = create((set, get) => ({
     }
   },
 }));
+
+
 

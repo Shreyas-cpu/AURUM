@@ -1,0 +1,1 @@
+(Get-Content -Path 'd:\Projects\AURUM\frontend\src\data\mockData.js' -Raw) -replace '19.0120', '18.5204' -replace '72.8360', '73.8567' -replace '19.0450', '18.5300' -replace '72.8200', '73.8400' -replace '19.0700', '18.5100' -replace '72.8600', '73.8600' | Set-Content -Path 'd:\Projects\AURUM\frontend\src\data\mockData.js'

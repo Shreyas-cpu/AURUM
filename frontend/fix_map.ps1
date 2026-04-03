@@ -1,0 +1,1 @@
+(Get-Content -Path 'd:\Projects\AURUM\frontend\src\components\shared\MapEmbed.jsx' -Raw) -replace '(?s)\{\s*activeAmbulances\.map\(amb.*?<\/GoogleMap>', '</GoogleMap>' | Set-Content -Path 'd:\Projects\AURUM\frontend\src\components\shared\MapEmbed.jsx'

@@ -1,0 +1,1 @@
+(Get-Content -Path 'd:\Projects\AURUM\frontend\src\data\mockData.js' -Raw) -replace 'hosp-001', 'PUN001' -replace 'hosp-002', 'PUN002' -replace 'hosp-003', 'PUN003' | Set-Content -Path 'd:\Projects\AURUM\frontend\src\data\mockData.js'
