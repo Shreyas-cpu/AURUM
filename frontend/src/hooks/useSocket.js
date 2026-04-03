@@ -21,35 +21,46 @@ function driftVital(base, range) {
 }
 
 export function useVitalsStream(patientId, intervalMs = 3000) {
-  const pushVitals = useStore(s => s.pushVitals);
-  const patients   = useStore(s => s.patients);
+  const store = useStore;
 
   useEffect(() => {
     if (!patientId) return;
-    const patient = patients.find(p => p.id === patientId);
+    
+    // Use the latest state without adding patients to the dependency array
+    const patient = store.getState().patients.find(p => p.id === patientId);
     if (!patient) return;
 
-    const id = setInterval(() => {
-      // Emit: vitals:update  (socket.emit equivalent for mock)
+    const id = setInterval(async () => {
       const reading = {
-        id:              `vs-${Date.now()}`,
         patient_id:      patientId,
         source:          'monitor',
-        heart_rate:      Math.round(driftVital(patient.heart_rate,      8)),
-        systolic_bp:     Math.round(driftVital(patient.systolic_bp,     6)),
-        diastolic_bp:    Math.round(driftVital(patient.diastolic_bp,    5)),
+        heart_rate:      Math.round(driftVital(patient.heart_rate,      8)),    
+        systolic_bp:     Math.round(driftVital(patient.systolic_bp,     6)),    
+        diastolic_bp:    Math.round(driftVital(patient.diastolic_bp,    5)),    
         spo2:            parseFloat(driftVital(patient.spo2,            1.2).toFixed(1)),
-        respiratory_rate:Math.round(driftVital(patient.respiratory_rate, 4)),
+        respiratory_rate:Math.round(driftVital(patient.respiratory_rate, 4)),   
         temperature:     parseFloat(driftVital(patient.temperature,     0.3).toFixed(1)),
         gcs_score:       patient.gcs_score,
-        recorded_at:     new Date().toISOString(),
       };
-      pushVitals(reading);
+
+      try {
+        if(store.getState().isConnected) {
+          // Push via REST - the backend will broadcast via socket
+          await fetch(`http://localhost:3001/api/patients/${patientId}/vitals`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reading)
+          });
+        } else {
+          // Fallback to local store mutation
+          store.getState().pushVitals({...reading, id: `vs-${Date.now()}`, recorded_at: new Date().toISOString()});
+        }
+      } catch (e) {
+        console.error('[AURUM] Error streaming vitals to backend:', e);
+      }
     }, intervalMs);
 
     return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [patientId]);
 }
 
 export function useHospitalStatusUpdates(hospitalId, intervalMs = 8000) {
@@ -74,26 +85,24 @@ export function useHospitalStatusUpdates(hospitalId, intervalMs = 8000) {
   }, [hospitalId]);
 }
 
-export function useAmbulanceLocationBroadcast(intervalMs = 5000) {
-  const updateAmbulanceLocation = useStore(s => s.updateAmbulanceLocation);
+export function useAmbulanceLocationBroadcast(ambulanceId, intervalMs = 5000) {
+  const updateAmbulanceLocation = useStore(s => s.updateAmbulanceLocation);     
   const ambulances               = useStore(s => s.ambulances);
 
   useEffect(() => {
+    if (!ambulanceId) return;
     const id = setInterval(() => {
-      // Simulate: ambulance:location_broadcast
-      ambulances.forEach(amb => {
-        if (amb.status === 'en_route_to_hospital') {
-          updateAmbulanceLocation(
-            amb.id,
-            amb.current_lat  + (Math.random() - 0.5) * 0.001,
-            amb.current_lng  + (Math.random() - 0.5) * 0.001,
-          );
-        }
-      });
+      const amb = useStore.getState().ambulances.find(a => a.id === ambulanceId);
+      if (amb && (amb.status === 'en_route_to_hospital' || amb.status === 'on_scene')) {
+        updateAmbulanceLocation(
+          amb.id,
+          amb.current_lat  + (Math.random() - 0.5) * 0.001,
+          amb.current_lng  + (Math.random() - 0.5) * 0.001,
+        );
+      }
     }, intervalMs);
     return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ambulanceId]);
 }
 
 // Socket event name constants — match Node.js server exactly

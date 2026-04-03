@@ -128,11 +128,13 @@ function NavigationScreen({ patient, hospital, routing, onArrive }) {
   const [accepted, setAccepted] = useState(false);
   const [showShap, setShowShap] = useState(false);
   const [rerouteAlert, setRerouteAlert] = useState(false);
+  const hospitals = useStore(s => s.hospitals);
 
   const srs = patient?.survivability_score || 0.71;
   const srsColor = srs >= 0.75 ? '#10b981' : srs >= 0.5 ? '#f59e0b' : '#e84545';
-  const secondary = MOCK_HOSPITALS[1];
+  
   const scored = routing?.all_hospitals_scored || [];
+  const secondary = hospitals.find(h => h.id === scored[1]?.hospital_id) || hospitals[1] || MOCK_HOSPITALS[1];
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -305,20 +307,18 @@ export default function AmbulanceMain() {
   const ambulances = useStore(s => s.ambulances);
   const patients   = useStore(s => s.patients);
   const activePatId = useStore(s => s.activePatientId);
-  const updateAmbulanceStatus = useStore(s => s.updateAmbulanceStatus);
+  const activeAmbId = useStore(s => s.activeAmbulanceId);
+  const updateAmbulanceStatus = useStore(s => s.updateAmbulanceStatus);       
 
   const patient  = patients.find(p => p.id === activePatId);
-  const ambulance = ambulances.find(a => a.id === 'amb-001');
-  const routing  = MOCK_ROUTING_EVENTS[0];
-  const hospital = hospitals.find(h => h.id === (patient?.assigned_hospital_id || 'hosp-001')) || hospitals[0];
+  const ambulance = ambulances.find(a => a.id === activeAmbId);
+  const routingEvents = useStore(s => s.routingEvents);
+  const routing = routingEvents.find(e => e.patient_id === activePatId) || MOCK_ROUTING_EVENTS[0];
+  const hospital = hospitals.find(h => h.id === (patient?.assigned_hospital_id || routing.routed_to_hospital_id || 'hosp-001')) || hospitals[0];
 
   // Status determines which screen is shown
-  const [status, setStatus] = useState(ambulance?.status || 'en_route_to_hospital');
-
-  if (status === 'idle') {
-    return <StandbyScreen onPickup={() => setStatus('on_scene')} />;
-  }
-
+  const status = ambulance?.status || 'idle';
+  const setStatus = (st) => updateAmbulanceStatus(activeAmbId, st);
   if (status === 'at_hospital') {
     return <HandoverScreen hospital={hospital} onConfirm={() => setTimeout(() => setStatus('idle'), 2000)} />;
   }

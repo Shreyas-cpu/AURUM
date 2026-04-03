@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../../hooks/useStore';
 import { useVitalsStream } from '../../hooks/useSocket';
-import { MOCK_HOSPITALS, SEVERITY_MAP } from '../../data/mockData';
+import { SEVERITY_MAP } from '../../data/mockData';
 
 // ─── Animated ECG Waveform ────────────────────────────────────────────────────
 function EcgWave({ color = '#10b981', width = 160, height = 36 }) {

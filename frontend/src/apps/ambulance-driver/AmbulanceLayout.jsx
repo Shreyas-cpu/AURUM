@@ -77,15 +77,17 @@ export default function AmbulanceLayout() {
   const mceActive          = useStore(s => s.mceActive);
   const activePatient      = patients.find(p => p.id === activePatId);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [callSign, setCallSign] = useState('AMB-001');
+  const callSign           = useStore(s => s.activeAmbulanceId);
+  const setCallSign        = useStore(s => s.setActiveAmbulanceId);
 
-  useAmbulanceLocationBroadcast();
+  // Automatically broadcast this specific ambulance's location continuously once logged in!
+  useAmbulanceLocationBroadcast(loggedIn ? callSign : null);
 
   const sev     = activePatient?.predicted_severity;
   const sevMeta = sev ? SEVERITY_MAP[sev] : null;
 
   if (!loggedIn) {
-    return <LoginScreen onLogin={(cs) => { setCallSign(cs); setLoggedIn(true); }} />;
+    return <LoginScreen onLogin={(cs) => { setCallSign(cs.toLowerCase().replace('amb', 'amb')); setLoggedIn(true); }} />;
   }
 
   return (

@@ -3,7 +3,7 @@ import { Mic, Send, Loader, CheckCircle, ArrowRight } from 'lucide-react';
 import { useStore } from '../../hooks/useStore';
 import SeverityBadge from '../../components/shared/SeverityBadge';
 import SurvivabilityScore from '../../components/shared/SurvivabilityScore';
-import { MOCK_HOSPITALS } from '../../data/mockData';
+
 
 const COMPLAINTS = [
   { label: 'Chest Pain',           emoji: '💔', value: 'Chest pain / STEMI' },
@@ -32,6 +32,7 @@ export default function AmbulanceDispatch() {
   const isRunning  = useStore(s => s.isRunningApex);
   const apexResult = useStore(s => s.lastApexResult);
   const addNotif   = useStore(s => s.addNotification);
+  const hospitals  = useStore(s => s.hospitals);
 
   const [form, setForm] = useState({
     age: '', sex: 'male',
@@ -214,8 +215,8 @@ export default function AmbulanceDispatch() {
             <SurvivabilityScore score={apexResult.survivability_score} size={68} />
             <div>
               <div className="text-xs font-bold mb-1" style={{ color: '#4a5a6a' }}>NEXUS Recommendation</div>
-              <div className="text-lg font-black" style={{ color: '#e8ecef' }}>{MOCK_HOSPITALS[0].name}</div>
-              <div className="text-[10px] mt-1" style={{ color: '#7a8a9a' }}>ETA 9 min · Trauma surgeon on duty</div>
+                <div className="text-lg font-black" style={{ color: '#e8ecef' }}>{apexResult.target_hospital || hospitals.find(h => h.id === apexResult.hospital_id)?.name || 'KEM Hospital'}</div>
+                <div className="text-[10px] mt-1" style={{ color: '#7a8a9a' }}>ETA 9 min · Specialist on duty</div>
               <div className="flex gap-1.5 mt-2">
                 {apexResult.predicted_care_needs.icu        && <span className="text-[9px] px-2 py-0.5 rounded" style={{ background: 'rgba(139,92,246,0.15)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.25)' }}>ICU</span>}
                 {apexResult.predicted_care_needs.ventilator && <span className="text-[9px] px-2 py-0.5 rounded" style={{ background: 'rgba(6,182,212,0.15)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.3)' }}>Ventilator</span>}

@@ -3,10 +3,11 @@
  * Manages real-time state across all three interfaces.
  * Socket events mutate this store; components subscribe reactively.
  * 
- * Backend: FastAPI at localhost:8000
+ * Backend: Node.js at localhost:3001
  * Falls back to MOCK_DATA if backend is unavailable.
  */
 import { create } from 'zustand';
+import { io } from 'socket.io-client';
 import {
   MOCK_HOSPITALS,
   MOCK_AMBULANCES,
@@ -15,8 +16,8 @@ import {
   MOCK_ROUTING_EVENTS,
 } from '../data/mockData';
 
-const API_BASE = 'http://localhost:8000/api';
-const WS_BASE = 'ws://localhost:8000/ws/dispatch';
+const API_BASE = 'http://localhost:3001/api';
+const WS_BASE = 'http://localhost:3001';
 
 export const useStore = create((set, get) => ({
   // ─── Connection State ────────────────────────────────────────────────
@@ -67,11 +68,32 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  updateHospitalResources: (hospitalId, updates) => set(state => ({
-    hospitals: state.hospitals.map(h =>
-      h.id === hospitalId ? { ...h, ...updates, last_updated_at: new Date().toISOString() } : h
-    ),
-  })),
+  updateHospitalResources: async (hospitalId, updates) => {
+    // Optimistic UI update
+    set(state => ({
+      hospitals: state.hospitals.map(h =>
+        h.id === hospitalId ? { ...h, ...updates, last_updated_at: new Date().toISOString() } : h
+      ),
+    }));
+    // Sync to DB
+    try {
+      const activeHosp = get().hospitals.find(h => h.id === hospitalId);
+      if(!activeHosp) return;
+      const payload = {
+        avail_icu_beds: updates.avail_icu_beds ?? activeHosp.avail_icu_beds,
+        avail_gen_beds: updates.avail_gen_beds ?? activeHosp.avail_gen_beds,
+        avail_ventilators: updates.avail_ventilators ?? activeHosp.avail_ventilators,
+        current_load_pct: Math.round(((activeHosp.total_gen_beds - (updates.avail_gen_beds ?? activeHosp.avail_gen_beds)) / activeHosp.total_gen_beds) * 100) || activeHosp.current_load_pct
+      };
+      await fetch(`${API_BASE}/hospitals/${hospitalId}/resources`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      console.error('Failed to sync resources to backend', e);
+    }
+  },
 
   updateSpecialist: (hospitalId, specialistId, updates) => set(state => ({
     hospitals: state.hospitals.map(h =>
@@ -83,11 +105,30 @@ export const useStore = create((set, get) => ({
 
   // ─── Ambulance State ─────────────────────────────────────────────────
   ambulances: MOCK_AMBULANCES,
-  updateAmbulanceLocation: (ambulanceId, lat, lng) => set(state => ({
-    ambulances: state.ambulances.map(a =>
-      a.id === ambulanceId ? { ...a, current_lat: lat, current_lng: lng, last_location_update: new Date().toISOString() } : a
-    ),
-  })),
+  activeAmbulanceId: 'amb-001',
+  setActiveAmbulanceId: (id) => set({ activeAmbulanceId: id }),
+
+  updateAmbulanceLocation: async (ambulanceId, lat, lng) => {
+    set(state => ({
+      ambulances: state.ambulances.map(a =>
+        a.id === ambulanceId ? { ...a, current_lat: lat, current_lng: lng, last_location_update: new Date().toISOString() } : a
+      ),
+    }));
+    // Sync to DB via HTTP
+    try {
+      if(get().isConnected) {
+        // Emit via WS directly
+        get().ws.emit('ambulance:location', { ambulance_id: ambulanceId, lat, lng });
+      } else {
+        // Fallback HTTP
+        await fetch(`${API_BASE}/ambulances/${ambulanceId}/location`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lng })
+        });
+      }
+    } catch(e) {}
+  },
 
   updateAmbulanceStatus: (ambulanceId, status) => set(state => ({
     ambulances: state.ambulances.map(a =>
@@ -171,42 +212,36 @@ export const useStore = create((set, get) => ({
     // Try to fetch from backend, but don't fail if unavailable
     get().fetchHospitals();
 
-    // Setup WebSocket (non-blocking)
+    // Setup Socket.IO
     if (!get().ws) {
       try {
-        const socket = new WebSocket(WS_BASE);
-        socket.onopen = () => {
-          console.log('[AURUM] WebSocket connected');
+        const socket = io(WS_BASE);
+        socket.on('connect', () => {
+          console.log('[AURUM] 🟢 Socket.io connected');
           set({ isConnected: true, ws: socket });
-        };
-        socket.onclose = () => {
-          console.log('[AURUM] WebSocket disconnected');
+        });
+        socket.on('disconnect', () => {
+          console.log('[AURUM] 🔴 Socket.io disconnected');
           set({ isConnected: false, ws: null });
-        };
-        socket.onerror = () => {
-          console.log('[AURUM] WebSocket unavailable, using offline mode');
-        };
-        socket.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data);
-            if (message.type === 'NEW_DISPATCH') {
-              const dispatch = message.data;
-              get().addNotification({
-                type: 'alert',
-                title: 'Incoming Ambulance',
-                message: `Severity ${dispatch.prediction?.severity} case routed to ${dispatch.routed_to}`
-              });
-            }
-          } catch (e) {
-            console.warn('[AURUM] WS parse error:', e);
-          }
-        };
+        });
+        socket.on('hospital:status_update', (hospital) => {
+          console.log('[AURUM] 🚨 Hospital Sync Received:', hospital);
+          set(state => ({
+            hospitals: state.hospitals.map(h => 
+              h.id === hospital.id ? { ...h, ...hospital } : h
+            )
+          }));
+        });
+        socket.on('vitals:update', (data) => {
+          console.log('[AURUM] ❤️ Vitals Stream:', data);
+          get().pushVitals(data.vitals);
+        });
+        socket.on('ambulance:location_broadcast', (data) => {
+          console.log('[AURUM] 🚑 Ambulance Location Update:', data);
+          get().updateAmbulanceLocation(data.ambulance_id, data.lat, data.lng);
+        });
       } catch (err) {
-        console.log('[AURUM] WebSocket connection failed, offline mode');
-      }
-    }
-  },
-
+        console.log('[AURUM] Socket connection failed, offline mode');       
   runApexPrediction: async (vitals) => {
     set({ isRunningApex: true });
     try {

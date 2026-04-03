@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle, MapPin } from 'lucide-react';
 import { useStore } from '../../hooks/useStore';
-import { MOCK_HOSPITALS, SEVERITY_MAP } from '../../data/mockData';
+import { SEVERITY_MAP } from '../../data/mockData';
 import SeverityBadge from '../../components/shared/SeverityBadge';
 
 const MCE_ASSIGNMENTS = [
