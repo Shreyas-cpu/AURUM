@@ -133,6 +133,20 @@ app.put('/api/ambulances/:id/location', async (req, res) => {
   }
 });
 
+// --- WEBSOCKET EVENT HOOKS ---
+// Internal webhook for ML Engine to trigger broadcasts
+app.post('/api/internal/broadcast', (req, res) => {
+  const { event, payload } = req.body;
+  if (!event || !payload) {
+    return res.status(400).json({ error: "Missing event or payload" });
+  }
+  
+  // Forward the ML event to all connected dashboard and ambulance clients
+  io.emit(event, payload);
+  console.log(`📡 Broadcasted internal event [${event}] to connected clients.`);
+  res.json({ success: true, relayed: true });
+});
+
 // --- WEBSOCKET EVENTS (Socket.io HUB) ---
 
 io.on('connection', (socket) => {

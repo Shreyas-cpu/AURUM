@@ -280,56 +280,66 @@ export const useStore = create((set, get) => ({
   runApexPrediction: async (vitals) => {
     set({ isRunningApex: true });
     try {
-      // Try real backend first
-      const res = await fetch(`${API_BASE}/dispatch`, {
+      const patientId = vitals.patient_id || `pat-${Date.now()}`;
+      
+      const apexRes = await fetch("http://localhost:8000/ml/predict", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          vitals: {
-            heart_rate: vitals.heart_rate,
-            systolic_bp: vitals.systolic_bp,
-            respiratory_rate: vitals.respiratory_rate,
-            gcs: vitals.gcs_score,
-            symptoms: vitals.chief_complaint || "Emergency"
-          },
-          lat: 19.0120, // Mumbai lat
-          lng: 72.8360  // Mumbai lng
-        }),
+          ...vitals,
+          patient_id: patientId,
+          age: vitals.age || 45,
+          sex: vitals.sex || 'male',
+          chief_complaint: vitals.chief_complaint || 'Trauma',
+          mechanism_of_injury: vitals.mechanism_of_injury || 'Fall'
+        })
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status === 'success') {
-          set({
-            isRunningApex: false,
-            lastApexResult: {
-              predicted_severity: data.prediction.severity === 'High' ? 4 : data.prediction.severity === 'Moderate' ? 3 : 2,
-              predicted_care_needs: {
-                icu: data.prediction.needs_ventilator || data.prediction.needs_neurosurgery,
-                ventilator: data.prediction.needs_ventilator,
-                specialist: data.prediction.needs_neurosurgery ? 'neurosurgeon' : 'trauma_surgeon',
-                cath_lab: false,
-              },
-              survivability_score: (data.prediction.srs_score || 85) / 100,
-              target_hospital: data.routed_to,
-              hospital_id: data.hospital_id,
-              shap_explanation: {
-                gcs_score:           0.30,
-                systolic_bp:         0.24,
-                spo2:                0.18,
-                heart_rate:          0.12,
-                age:                 0.08,
-                mechanism_of_injury: 0.05,
-                respiratory_rate:    0.03,
-              },
-            },
-          });
-          return;
+      if (!apexRes.ok) throw new Error('APEX Predict failed');
+      const apexData = await apexRes.json();
+
+      const routeRes = await fetch("http://localhost:8000/ml/route", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          patient_lat: vitals.lat || 19.0120,
+          patient_lng: vitals.lng || 72.8360,
+          apex_output: { ...apexData, shap_values: apexData.shap_values },
+          hospitals_list: get().hospitals.map(h => ({
+            ...h,
+            current_load_pct: h.current_load_pct || 50,
+            avail_icu_beds: h.avail_icu_beds || 5,
+            avail_gen_beds: h.avail_gen_beds || 20,
+            avail_ventilators: h.avail_ventilators || 3
+          }))
+        })
+      });
+
+      if (!routeRes.ok) throw new Error('NEXUS Route failed');
+      const routeData = await routeRes.json();
+
+      const recommended = routeData.recommended_hospital || {};
+
+      set({
+        isRunningApex: false,
+        lastApexResult: {
+          predicted_severity: apexData.predicted_severity,
+          predicted_care_needs: {
+            icu: apexData.needs_icu,
+            ventilator: apexData.needs_ventilator,
+            specialist: apexData.specialist_required,
+            cath_lab: false,
+          },
+          survivability_score: apexData.survivability_score,
+          target_hospital: recommended.hospital_name,
+          hospital_id: recommended.hospital_id,
+          shap_explanation: apexData.shap_values,
         }
-      }
-      throw new Error('Backend unavailable');
+      });
+      return;
     } catch (err) {
-      console.log('[AURUM] Backend APEX unavailable, running local simulation');
+      console.log('[AURUM] Backend APEX unavailable, running local simulation', err);
       // Fallback: local simulation
       setTimeout(() => {
         const srs = Math.min(0.99, Math.max(0.1,
@@ -364,3 +374,4 @@ export const useStore = create((set, get) => ({
     }
   },
 }));
+

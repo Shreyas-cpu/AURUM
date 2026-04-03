@@ -4,10 +4,13 @@ import xgboost as xgb
 import shap
 import pickle
 import os
+import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
+
+NODE_SERVER_URL = "http://localhost:3001"
 
 from nexus import RouteRequest, BatchRouteRequest, Hospital, route_single_patient, route_mce_batch
 
@@ -86,9 +89,11 @@ def preprocess_input(data: PatientVitals) -> pd.DataFrame:
 
 @app.post("/ml/predict")
 async def apex_predict(vitals: PatientVitals):
-    if not apex_icu:
+    if (apex_icu is None or apex_ventilator is None or 
+        apex_specialist is None or le_spec is None or 
+        shap_explainer is None):
         raise HTTPException(status_code=503, detail="Models not loaded")
-        
+
     df = preprocess_input(vitals)
     
     # 1. Predictions
@@ -141,6 +146,28 @@ async def nexus_route_single(req: RouteRequest):
     """
     try:
         routing_result = route_single_patient(req)
+        
+        # Bridge to Node.js WebSocket via internal broadcast
+        recommended = routing_result.get("recommended_hospital", {})
+        payload = {
+            "patient_id": req.patient_id,
+            "patient_code": getattr(req, "patient_code", req.patient_id),
+            "routed_to_hospital_id": recommended.get("hospital_id", "hosp-unknown"),
+            "hospital_name": recommended.get("hospital_name", "Unknown"),
+            "survivability_score": req.apex_output.survivability_score,
+            "all_hospitals_scored": routing_result.get("all_scored", []),
+            "shap_explanation": req.apex_output.shap_values
+        }
+        
+        try:
+            requests.post(f"{NODE_SERVER_URL}/api/internal/broadcast", json={
+                "event": "routing:decision",
+                "payload": payload
+            }, timeout=2)
+            print(f"[AURUM ML Engine] Broadcasted routing decision for Patient {req.patient_id}")
+        except Exception as bridge_err:
+            print(f"[AURUM ML Engine] Warning: Failed to broadcast routing:decision. Details: {bridge_err}")
+
         return routing_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -155,6 +182,22 @@ async def nexus_route_mce(req: BatchRouteRequest, global_hospitals: List[Hospita
     """
     try:
         batch_result = route_mce_batch(req, global_hospitals)
+        
+        # Bridge to Node.js WebSockets
+        try:
+            payload = {
+                "event_id": req.event_id or "MCE-UNKNOWN",
+                "patient_ids": [p.patient_id for p in req.patients],
+                "assignments": batch_result.get("assignments", [])
+            }
+            requests.post(f"{NODE_SERVER_URL}/api/internal/broadcast", json={
+                "event": "mce:triggered",
+                "payload": payload
+            }, timeout=2)
+            print(f"[AURUM MCE] Broadcasted MCE routing for event {payload['event_id']}")
+        except Exception as bridge_err:
+            print(f"[AURUM MCE] Warning: Failed to broadcast MCE decision. Details: {bridge_err}")
+
         return batch_result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

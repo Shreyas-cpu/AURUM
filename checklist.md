@@ -37,21 +37,21 @@ This document tracks the current development progress of the AURUM project again
   - *Status:* **Completed**
   - *Notes:* Fully implemented automated vitals-stream simulation logic via `useVitalsStream` hook. It continuously drifts patient vitals metrics and hits the Node API endpoint (`/vitals`), enabling true streaming to the Postgres DB `vitals_stream` table and initiating websocket `io.emit('vitals:update')` packets to all listener dashboards.
 
-- [~] **STAGE 8: Real-Time Layer — WebSockets & Live Updates**
-  - *Status:* **In Progress**
-  - *Notes:* Basic `ConnectionManager` exists in FastAPI, and `useSocket.js` hook exists in React, but requires Redis Pub/Sub for robust cross-network broadcasting.
+- [x] **STAGE 8: Real-Time Layer — WebSockets & Live Updates**
+  - *Status:* **Completed**
+  - *Notes:* Fully implemented. Crossed the Python/Node divide using an internal `/api/internal/broadcast` webhook that correctly emits `routing:decision` and `mce:triggered` via Socket.io to React Zustand listeners.
 
-- [~] **STAGE 9: Google Maps Integration**
-  - *Status:* **In Progress**
-  - *Notes:* `MapEmbed.jsx` added, but full transition from Leaflet to Google Maps Platform (with real-time traffic and Directions API) is outstanding.
+- [x] **STAGE 9: Google Maps Integration**
+  - *Status:* **Completed**
+  - *Notes:* Fully transitioned map layers. `@react-google-maps/api` implemented in `MapEmbed.jsx`, eradicating `leaflet` from `package.json`. Includes styled base-maps, conditional Directions rendering, SVG markers with Pulse effects, and dynamic fallback notice if API key isn't provided in the environment yet.
 
-- [ ] **STAGE 10: Mass Casualty Event (MCE) Batch Mode**
-  - *Status:* **Pending Backend Logic**
-  - *Notes:* UI pieces built out (`AmbulanceMCE.jsx`), but the backend ILP matrix for simultaneously routing N patients to M hospitals is missing.
+- [x] **STAGE 10: Mass Casualty Event (MCE) Batch Mode**
+  - *Status:* **Completed**
+  - *Notes:* Backend ILP matrix (`nexus.py`) for routing N patients to M hospitals is active on `/ml/mce-route`. Frontend React `AmbulanceMCE.jsx` triggers it globally via webhooks.
 
-- [ ] **STAGE 11: Explainability Panel — SHAP Routing Rationale**
-  - *Status:* **Pending Backend Logic**
-  - *Notes:* UI `ShapPanel.jsx` exists, but backend needs to process and return SHAP values from the XGBoost model.
+- [x] **STAGE 11: Explainability Panel — SHAP Routing Rationale**
+  - *Status:* **Completed**
+  - *Notes:* `main.py` generates `shap_values` from the `shap.TreeExplainer` upon `/ml/predict` returning them to the React client which binds them into `ShapPanel.jsx`.
 
 - [ ] **Frontend Updation**
   - *Status:* **Pending Definition**

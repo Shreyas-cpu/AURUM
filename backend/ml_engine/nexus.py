@@ -32,11 +32,13 @@ class ApexOutput(BaseModel):
     specialist_required: str
     predicted_severity: int
     survivability_score: float
+    shap_values: Optional[Dict[str, float]] = None
 
 class RouteRequest(BaseModel):
     patient_id: str
     patient_lat: float
     patient_lng: float
+    age: Optional[int] = None
     apex_output: ApexOutput
     hospitals_list: List[Hospital]
 
