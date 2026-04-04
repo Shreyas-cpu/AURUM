@@ -1,52 +1,74 @@
-# AURUM (Adaptive Unified Routing for Urgent Medicine)
+# AURUM - Advanced Emergency Response Orchestration System
 
-AURUM is a next-generation emergency triage intelligence platform designed to bypass reactive ambulance routing. Based on the **Ignisia Hackathon HC03 (Golden Hour Emergency Triage)** problem statement, AURUM leverages predictive hospital states and real-time constraint-based triage to effectively route trauma patients not just to the nearest hospital, but to the *safest, most capable* clinical facility during the 'Golden Hour'.
+AURUM is a highly decoupled, real-time emergency medical response orchestration platform. It is designed to synchronize the entire emergency response pipeline from the scene of the incident, through the ambulance transit, to the hospital's Emergency Response Center (ERC).
 
-## 🏆 Project MVP Overview
-This repository contains the monorepo V1 functional prototype demonstrating the fundamental interaction between standard vitals input, triage scoring, constraint optimization, and live dispatch visualization.
+## 🚀 What the System Can Currently Do
 
-### Key Conceptual Implementations:
-1. **APEX Engine (Mocked)**: Predicts acuity and survivability scores based on vital structures.
-2. **NEXUS Engine (Mocked)**: Routes the patient utilizing live constraint calculations ensuring receiving hospitals actually have available beds, ventilators, and respective specialties.
-3. **Dispatch Command Center Dashboard**: Real-time websocket-powered Leaflet Map UI to track incoming patients and simulate hospital load management. 
+Currently, AURUM features a fully operational, end-to-end chain-reaction simulation (**Sim_01: Severe Heart Attack / Myocardial Infarction**). The system handles:
+*   **Decoupled Real-Time Sync:** Operates three independent frontend interfaces synchronized entirely via a central WebSocket Node.js hub.
+*   **Dynamic Routing & Geo-Tracking:** Simulates city-block geographical ambulance movement using a custom pathing algorithm and renders it via MapLibre GL.
+*   **Automated Rerouting (The Twist):** Simulates real-world dynamic constraints. For example, if a target hospital's Cath Lab becomes occupied during transit, the centralized ML/Routing engine intercepts the ambulance and instantly reroutes it to the next optimal hospital, notifying all parties dynamically.
+*   **Performance-Optimized GIS:** Efficient MapLibre rendering limits map nodes to 15 non-active hospitals, instantly isolating and focusing on the target destination when an ambulance is dispatched to reduce UI load.
+*   **Live Vitals Streaming:** Streams deteriorating patient vitals from a dedicated monitor interface directly into the backend via REST, which broadcasts them to connected tracking applications.
 
----
+## 🛠️ Project Architecture & Functions
 
-## 💻 Tech Stack
-- **Frontend**: React 18, Vite, Tailwind CSS, React-Leaflet.
-- **Backend**: FastAPI (Python), Uvicorn, WebSockets.
-- **Simulation Assets**: Hardcoded simulated network of 5 standard hospitals in the Pune region framework for local testing.
+AURUM is broken into three main technical pillars:
+1.  **Frontend (Vite + React + Zustand + Tailwind CSS):**
+    *   Renders 3 separate application tabs from a single codebase using React Router.
+    *   Global state is handled via `zustand` which listens natively to WebSocket pushes, eliminating local-storage synchronization bugs.
+2.  **Backend Engine (Node.js + Express + Socket.io):**
+    *   The central brain (`simEngine.js`) orchestrating the state of active incidents.
+    *   Pushes 1-way WebSocket events to connected clients.
+3.  **ML Engine (Python + FastAPI):**
+    *   Evaluates APEX (survivability prediction) and NEXUS (dynamic routing parameters).
 
----
+## ⚙️ How to Run the Project
 
-## 🚀 Getting Started
+AURUM includes a convenient startup batch script that spins up the Database, Backend API, Python Engine, and Frontend sequentially.
 
-### 1. Start the Backend API (FastAPI)
-Open a terminal and navigate to the backend directory:
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-*The backend API and Websocket server will launch on `http://localhost:8000`.*
+### Prerequisites:
+*   **Docker Desktop** (For PostgreSQL Database)
+*   **Node.js** (v18+)
+*   **Python** (v3.10+)
 
-### 2. Start the Frontend Dispatch Dashboard (React)
-Open a new, separate terminal and navigate to the frontend directory:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-*The frontend Vite server will launch. Open the provided `http://localhost:5173` link in your browser to view the Command Center.*
+### Start Command:
+1.  Open up a terminal in the root workspace directory (`D:/Projects/AURUM`).
+2.  Run the master startup script:
+    ```bash
+    .\run_aurum.bat
+    ```
+3.  This creates four separate terminal windows:
+    *   **PostgreSQL** (Docker Compose)
+    *   **Node.js API Hub** (`http://localhost:3001`)
+    *   **Python ML Engine** (`http://localhost:8000`)
+    *   **React Vite Frontend** (`http://localhost:5173`)
 
----
+## 🌐 How to Access
 
-## 🛠️ Usage
-1. Open the **Dispatch Command Center** in your browser. Wait for the 5 simulated hospitals to populate on the Map.
-2. Under the **"New Dispatch"** panel on the left, enter arbitrary mock patient vitals. Adjusting variables like Heart Rate, GCS score, and Symptoms will trigger different acuity paths.
-3. Click **"Dispatch Ambulance"**.
-4. The system will process the constraint-based routing, assign a Survivability Routing Score (SRS), and dispatch the ambulance to the mathematically best destination. The path and connection will appear live on your map!
+Once the servers have successfully booted up, open your web browser. You will need to open **multiple tabs or windows** to view the entire ecosystem functioning together in real-time.
 
----
+*   **Master Landing / Control Panel:** [http://localhost:5173/](http://localhost:5173/)
+*   **Hospital ERC Dashboard:** [http://localhost:5173/app/hospital](http://localhost:5173/app/hospital)
+*   **Ambulance Driver Console:** [http://localhost:5173/app/ambulance](http://localhost:5173/app/ambulance)
+*   **Patient Monitor (Vitals Source):** [http://localhost:5173/app/monitor](http://localhost:5173/app/monitor)
 
-*Designed and Built for the HC03 Ignisia AI Hackathon parameters.*
+## 🗺️ How to Use & Test the Simulation (Sim_01)
+
+To experience the system's cross-communication capabilities:
+
+1.  **Setup the Views:** Open the **Hospital ERC** tab, the **Ambulance Driver** tab, and the **Patient Monitor** tab side-by-side or scattered on multiple monitors.
+2.  **Launch the Incident:** From the Master Landing Page (`http://localhost:5173/`), click the **Play Simulation / Start Sim_01** button.
+3.  **Observe the Flow:**
+    *   **T+0s:** The Backend assigns an ambulance. The Driver Console receives a `routing:decision` with an initial map trace.
+    *   **T+5s:** Ambulance begins animated transit toward the patient scene, tracking over the custom MapLibre city-grid.
+    *   **T+15s:** Patient is loaded. **The Patient Monitor** automatically begins streaming deteriorating vitals (SpO2 drops, HR spikes). You will see these vitals sync instantly to the Hospital ERC dashboard.
+    *   **T+25s (The Twist):** The backend triggers a `routing:reroute` payload. A glowing notification overtakes the Ambulance screen rerouting them to Ruby Hall due to severe vitals requiring an immediate Cath Lab. The Map dynamically updates the path.
+    *   **T+36s:** The Ambulance arrives. The Hospital UI triggers an UBER-CRITICAL ARRIVAL modal, and the scenario ends smoothly.
+
+## 🗂️ Core WebSocket Events
+*   `ambulance:location_broadcast` -> Syncs live map positions.
+*   `vitals:update` -> Pushes new cardiac/respiratory metrics.
+*   `routing:decision` -> Assigns initial transit destinations.
+*   `routing:reroute` -> Updates active paths and notifies users of diversions.
+*   `hospital:status_update` -> Distributes critical bed/specialist availability.
