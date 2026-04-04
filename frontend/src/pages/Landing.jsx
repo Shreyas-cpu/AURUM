@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Ambulance, Monitor, ChevronRight, Zap, Shield } from 'lucide-react';
+import axios from 'axios';
+import { Toaster, toast } from 'react-hot-toast';
+import { Activity, Ambulance, Monitor, ChevronRight, Zap, Shield, Play } from 'lucide-react';
 
 function PulsingDot({ color = '#10b981' }) {
   return (
@@ -51,6 +53,36 @@ const INTERFACES = [
 ];
 
 export default function Landing() {
+  const [simRunning, setSimRunning] = useState(false);
+
+  const triggerSimBackend = async () => {
+    try {
+      await axios.post('http://localhost:3001/api/sim/01/start');
+      setSimRunning(true);
+      toast.success('Simulation Started across all tabs!');
+    } catch(e) {
+      toast.error('Simulation Failed to Start');
+    }
+  };
+
+  const handleSim01 = () => {
+    toast((t) => (
+      <div className="flex flex-col gap-2">
+        <span className="font-bold text-red-500">🚨 SEVERE INCIDENT REPORTED</span>
+        <span className="text-sm font-semibold">Suspected Myocardial Infarction</span>
+        <button 
+          onClick={() => { 
+            toast.dismiss(t.id); 
+            triggerSimBackend(); 
+          }} 
+          className="mt-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-bold transition-all"
+        >
+          Log Incident
+        </button>
+      </div>
+    ), { duration: 15000, style: { background: '#1a1f24', color: '#fff', border: '1px solid #334155' } });
+  };
+
   const navigate = useNavigate();
   const [hovered, setHovered] = useState(null);
 
@@ -59,6 +91,7 @@ export default function Landing() {
       className="min-h-screen flex flex-col"
       style={{ background: '#060a0e', color: '#e8ecef', fontFamily: 'Inter, sans-serif' }}
     >
+      <Toaster position="top-center" />
       {/* ── Top Header ─────────────────────────────────────────────── */}
       <header className="px-8 py-5 flex items-center justify-between border-b" style={{ borderColor: '#1e2d3d', background: '#080c10' }}>
         <div className="flex items-center gap-3">
@@ -76,6 +109,18 @@ export default function Landing() {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6', border: '1px solid rgba(139,92,246,0.25)' }}>
             <Zap size={10} />
             IGNISIA · HC03 · Healthcare Track
+          </div>
+          {/* Simulation Control */}
+          <div className="flex items-center gap-2 bg-[#1a1f24] border border-[#2e3d4d] px-2 py-1 rounded-md">
+            <select className="bg-transparent text-xs text-white outline-none cursor-pointer">
+              <option value="sim01">Sim 01: Severe Heart Attack</option>
+            </select>
+            <button 
+              onClick={handleSim01} 
+              className="bg-red-500/20 text-red-400 hover:bg-red-500/40 px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1 transition-all"
+            >
+              <Play size={10} /> Run
+            </button>
           </div>
           {/* Live indicator */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold" style={{ background: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)' }}>
@@ -194,3 +239,5 @@ export default function Landing() {
     </div>
   );
 }
+
+

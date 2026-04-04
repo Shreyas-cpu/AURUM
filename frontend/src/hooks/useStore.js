@@ -59,9 +59,11 @@ export const useStore = create((set, get) => ({
             specialists_on_duty: [],
           }));
           set({ hospitals: enriched });
-        } else {
-          set({ hospitals: data });
-        }
+        } else if (data && data.length > 0) {
+            set({ hospitals: data });
+          } else {
+            console.log('AURUM Backend empty, keeping mock');
+          }
         const currentHospitals = get().hospitals;
         if (currentHospitals.length > 0 && !currentHospitals.find(h => h.id === get().activeHospitalId)) {
           set({ activeHospitalId: currentHospitals[0].id });
@@ -112,13 +114,13 @@ export const useStore = create((set, get) => ({
   activeAmbulanceId: 'amb-001',
   setActiveAmbulanceId: (id) => set({ activeAmbulanceId: id }),
 
-  updateAmbulanceLocation: async (ambulanceId, lat, lng) => {
+  updateAmbulanceLocation: async (ambulanceId, lat, lng, preventSync = false) => {
     set(state => ({
       ambulances: state.ambulances.map(a =>
         a.id === ambulanceId ? { ...a, current_lat: lat, current_lng: lng, last_location_update: new Date().toISOString() } : a
       ),
     }));
-    // Sync to DB via HTTP
+    if(preventSync) return; // Sync to DB via HTTP
     try {
       if(get().isConnected) {
         // Emit via WS directly
@@ -225,6 +227,10 @@ export const useStore = create((set, get) => ({
     notifications: state.notifications.filter(n => n.id !== id),
   })),
 
+  // ─── Twist 2 State ──────────────────────────────────────────────────
+  roadblocks: [],
+  addRoadblock: (rb) => set(state => ({ roadblocks: [...state.roadblocks, rb] })),
+  clearRoadblocks: () => set({ roadblocks: [] }),
   // ─── Real-time Engine Integration ────────────────────────────────────
   isRunningApex: false,
   lastApexResult: null,
@@ -243,15 +249,29 @@ export const useStore = create((set, get) => ({
         });
         socket.on('disconnect', () => {
           console.log('[AURUM] 🔴 Socket.io disconnected');
-          set({ isConnected: false, ws: null });
+          set({ isConnected: false });
         });
         socket.on('hospital:status_update', (hospital) => {
           console.log('[AURUM] 🚨 Hospital Sync Received:', hospital);
           set(state => ({
-            hospitals: state.hospitals.map(h => 
+            hospitals: state.hospitals.map(h =>
               h.id === hospital.id ? { ...h, ...hospital } : h
             )
           }));
+        });
+        
+        // Twist 2 integrations
+        socket.on('roadblock:added', (payload) => {
+          console.log('[AURUM] 🚧 Dynamic Roadblock Received:', payload);
+          // Add to store
+          get().addRoadblock({lat: payload.lat, lng: payload.lng, radius_km: payload.radius_km});
+          
+          // Triggers visual map notification inside MapEmbed
+          get().addNotification({
+            id: `roadblock-${Date.now()}`,
+            message: "MAJOR TRANSIT ARTERY COMPROMISED. Re-calculating all active fleets...",
+            type: "critical"
+          });
         });
         socket.on('vitals:update', (data) => {
           console.log('[AURUM] ❤️ Vitals Stream:', data);
@@ -259,7 +279,7 @@ export const useStore = create((set, get) => ({
         });
         socket.on('ambulance:location_broadcast', (data) => {
           console.log('[AURUM] 🚑 Ambulance Location Update:', data);
-          get().updateAmbulanceLocation(data.ambulance_id, data.lat, data.lng);
+          get().updateAmbulanceLocation(data.ambulance_id, data.lat, data.lng, true);
         });
         socket.on('routing:decision', (data) => {
           console.log('[AURUM] 🧠 APEX/NEXUS Routing Decision:', data);
@@ -281,7 +301,7 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  runApexPrediction: async (vitals) => {
+  runApexPrediction: async (vitals, forceLevel1 = false) => {
     set({ isRunningApex: true });
     try {
       const patientId = vitals.patient_id || `pat-${Date.now()}`;
@@ -310,7 +330,7 @@ export const useStore = create((set, get) => ({
           patient_lat: vitals.lat || 18.5204,
           patient_lng: vitals.lng || 73.8567,
           apex_output: { ...apexData, shap_values: apexData.shap_values },
-          hospitals_list: get().hospitals.map(h => ({
+          hospitals_list: get().hospitals.filter(h => forceLevel1 ? h.has_trauma_centre : true).map(h => ({
             ...h,
             current_load_pct: h.current_load_pct || 50,
             avail_icu_beds: h.avail_icu_beds || 5,
@@ -378,6 +398,7 @@ export const useStore = create((set, get) => ({
     }
   },
 }));
+
 
 
 

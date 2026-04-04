@@ -47,7 +47,7 @@ function parseCSV(text) {
   return result;
 }
 
-const csvPath = 'c:\\Users\\Asus\\Downloads\\Ignisia\\pune_hospitals.csv';
+const csvPath = 'd:\\Projects\\AURUM\\pune_hospitals_corrected.csv';
 const csvContent = fs.readFileSync(csvPath, 'utf8');
 const rows = parseCSV(csvContent);
 const header = rows.shift();

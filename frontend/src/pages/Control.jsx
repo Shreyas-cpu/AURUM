@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Power, ShieldAlert, Radio, Lock } from 'lucide-react';
+import { Power, ShieldAlert, Radio, Lock, MapPinOff } from 'lucide-react';
+import axios from 'axios';
 
 export default function Control() {
   const [toggles, setToggles] = useState({
@@ -8,17 +9,67 @@ export default function Control() {
     radioOverride: false,
     publicAlert: false,
   });
+  const [roadblockStatus, setRoadblockStatus] = useState(null);
 
   const handleToggle = (key) => {
     // In a real application, you'd show a confirmation modal for destructive actions
     setToggles(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const triggerRoadblock = async () => {
+    try {
+      setRoadblockStatus('Deploying Roadblock...');
+      const payload = {
+        lat: 18.5300, // Central Pune simulated block
+        lng: 73.8500,
+        radius_km: 3.5
+      };
+      const API_URL = import.meta.env.VITE_ML_API_BASE_URL || "http://localhost:8000";
+      await axios.post(`${API_URL}/api/roadblock`, payload);
+      setRoadblockStatus('Roadblock Deployed. System Re-Routing Active.');
+    } catch (e) {
+      setRoadblockStatus('Failed to deploy roadblock.');
+    }
+  };
+
+  const clearRoadblocks = async () => {
+    try {
+      setRoadblockStatus('Clearing Roadblocks...');
+      const API_URL = import.meta.env.VITE_ML_API_BASE_URL || "http://localhost:8000";
+      await axios.post(`${API_URL}/api/clear-roadblocks`);
+      setRoadblockStatus('Roadblocks Cleared.');
+    } catch (e) {
+      setRoadblockStatus('Failed to clear roadblocks.');
+    }
+  };
+
   return (
     <div className="p-8 max-w-5xl mx-auto font-sans">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">System Override Console</h1>
-        <p className="text-sm text-slate-500 mt-1">Manual control mechanisms for critical municipal infrastructure components.</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+           <h1 className="text-2xl font-bold text-slate-900">System Override Console</h1>
+           <p className="text-sm text-slate-500 mt-1">Manual control mechanisms for critical municipal infrastructure components.</p>
+        </div>
+        
+        {/* Twist 2: Trigger Roadblock */}
+        <div className="flex flex-col items-end space-y-2">
+            <div className="flex space-x-2">
+              <button 
+                onClick={triggerRoadblock}
+                className="flex items-center px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 shadow-sm font-semibold text-sm transition"
+              >
+                <MapPinOff className="h-4 w-4 mr-2" />
+                SIMULATE ROADBLOCK
+              </button>
+              <button 
+                onClick={clearRoadblocks}
+                className="flex items-center px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 shadow-sm font-semibold text-sm transition"
+              >
+                CLEAR
+              </button>
+           </div>
+           {roadblockStatus && <div className="text-xs font-bold text-rose-600">{roadblockStatus}</div>}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

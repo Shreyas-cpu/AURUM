@@ -2,7 +2,6 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { runSim01, stopSim01 } from './simEngine.js';
 import pkg from 'pg';
 const { Pool } = pkg;
 
@@ -135,15 +134,6 @@ app.put('/api/ambulances/:id/location', async (req, res) => {
 });
 
 // --- WEBSOCKET EVENT HOOKS ---
-app.post('/api/sim/01/start', (req, res) => {
-  runSim01(io);
-  res.json({ message: 'Simulation 01 Initiated across all tabs' });
-});
-
-app.post('/api/sim/01/stop', (req, res) => {
-  stopSim01();
-  res.json({ message: 'Simulation 01 Stopped' });
-});
 // Internal webhook for ML Engine to trigger broadcasts
 app.post('/api/internal/broadcast', (req, res) => {
   const { event, payload } = req.body;
@@ -176,6 +166,4 @@ const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
   console.log(`🚀 Node.js AURUM API Hub running on port ${PORT}`);
 });
-
-
 
