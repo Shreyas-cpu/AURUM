@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import Map, { Marker, Popup, NavigationControl, FullscreenControl } from 'react-map-gl/maplibre';
+import Map, { Marker, Popup, NavigationControl, FullscreenControl, Source, Layer } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useStore } from '../../hooks/useStore';
 
@@ -18,6 +18,7 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
   const hospitals = useStore(s => s.hospitals);
   const ambulances = useStore(s => s.ambulances);
   const patients = useStore(s => s.patients);
+  const roadblocks = useStore(s => s.roadblocks); // Twist 2
   const center = useMemo(() => ({ lat: 18.5204, lng: 73.8567 }), []);
 
   const [popupInfo, setPopupInfo] = useState(null);
@@ -34,14 +35,14 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
     let visible = showAllHospitals ? hospitals : hospitals.filter(h => h.id === targetHospitalId);
     
     // Filter to only hospitals within 15 km of any ambulance
-    if (ambulances && ambulances.length > 0) {
-      visible = visible.filter(h => {
-        return ambulances.some(a => {
-          const dist = getDistance(a.current_lat, a.current_lng, h.lat, h.lng);
-          return dist <= 15;
-        });
-      });
-    }
+    // if (ambulances && ambulances.length > 0) {
+    //   visible = visible.filter(h => {
+    //     return ambulances.some(a => {
+    //       const dist = getDistance(a.current_lat, a.current_lng, h.lat, h.lng);
+    //       return dist <= 15;
+    //     });
+    //   });
+    // }
 
     return visible;
   }, [hospitals, showAllHospitals, targetHospitalId, ambulances]);
@@ -88,6 +89,26 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
         <NavigationControl position="top-right" />
         <FullscreenControl position="top-right" />
 
+        {/* Dynamic Roadblocks */}
+        {roadblocks?.map((rb, i) => (
+          <Marker
+              key={`rb-${i}`}
+              longitude={rb.lng}
+              latitude={rb.lat}
+              anchor="center"
+          >
+            <div className="relative flex items-center justify-center">
+              <div 
+                className="absolute bg-rose-500 opacity-30 rounded-full animate-pulse pointer-events-none" 
+                style={{ width: `${rb.radius_km * 20}px`, height: `${rb.radius_km * 20}px` }} 
+              />
+              <div className="text-2xl bg-white rounded-full p-1 shadow-lg z-10 border-2 border-rose-500">
+                🚧
+              </div>
+            </div>
+          </Marker>
+        ))}
+
         {/* Hospitals */}
         {displayHospitals.map(h => {
           const isTarget = h.id === targetHospitalId;
@@ -109,7 +130,7 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
                   width: isTarget ? '24px' : '16px',
                   height: isTarget ? '24px' : '16px',
                   borderRadius: '50%',
-                  backgroundColor: '#ef4444', // red dot
+                    backgroundColor: '#10b981', // green dot
                   border: isTarget ? '3px solid white' : '2px solid white',
                   cursor: 'pointer',
                   boxShadow: '0 0 10px rgba(0,0,0,0.3)',
@@ -117,6 +138,37 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
               />
             </Marker>
           );
+        })}
+
+        
+        {/* Ambulance Routes */}
+        {ambulances.map(a => {
+          if (a.assigned_hospital_id) {
+            const h = hospitals.find(h => h.id === a.assigned_hospital_id);
+            if (h) {
+              const data = {
+                type: 'Feature',
+                geometry: {
+                  type: 'LineString',
+                  coordinates: [[a.current_lng, a.current_lat], [h.lng, h.lat]]
+                }
+              };
+              return (
+                <Source key={'src-'+a.id} id={'src-'+a.id} type="geojson" data={data}>
+                  <Layer
+                    id={'route-'+a.id}
+                    type="line"
+                    paint={{
+                      'line-color': '#0ea5e9',
+                      'line-width': 4,
+                      'line-dasharray': [2, 2]
+                    }}
+                  />
+                </Source>
+              );
+            }
+          }
+          return null;
         })}
 
         {/* Ambulances */}
@@ -135,7 +187,8 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
               style={{
                 width: '18px',
                 height: '18px',
-                backgroundColor: '#10b981', // green ambulance
+                backgroundColor: '#ef4444', // red ambulance
+                  animation: 'bounce-pulse 1.5s infinite',
                 borderRadius: '50%',
                 border: '2px solid white',
                 cursor: 'pointer',

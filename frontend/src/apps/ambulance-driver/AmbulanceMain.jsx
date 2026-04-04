@@ -137,24 +137,11 @@ function NavigationScreen({ patient, hospital, routing, onArrive }) {
   const secondary = hospitals.find(h => h.id === scored[1]?.hospital_id) || hospitals[1] || MOCK_HOSPITALS[1];
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-row-reverse h-full overflow-hidden">
 
       {/* ── Map (top 60%) ─────────────────────────────────────────── */}
-      <div style={{ height: '60%', flexShrink: 0, position: 'relative' }}>
-        <MapEmbed targetHospitalId={hospital?.id} height="100%" showAllHospitals={false} />
-
-        {/* Turn-by-turn overlay */}
-        <div className="absolute top-3 left-3 right-3 z-10 rounded-xl px-4 py-3 flex items-center gap-3"
-          style={{ background: 'rgba(13,17,23,0.92)', backdropFilter: 'blur(10px)', border: '1px solid #1e2d3d' }}>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(232,69,69,0.2)', border: '1px solid rgba(232,69,69,0.4)' }}>
-            <ChevronRight size={20} style={{ color: '#e84545' }} />
-          </div>
-          <div>
-            <div className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#4a5a6a' }}>In 400m</div>
-            <div className="text-sm font-bold" style={{ color: '#e8ecef' }}>TURN LEFT onto Acharya Donde Marg</div>
-          </div>
-        </div>
+      <div style={{ width: '60%', height: '100%', flexShrink: 0, position: 'relative', borderLeft: '1px solid #1e2d3d' }}>
+        <MapEmbed targetHospitalId={hospital?.id} height="100%" showAllHospitals={true} />
 
         {/* Vitals strip overlay */}
         <div className="absolute bottom-3 left-3 right-3 z-10 flex gap-2">
@@ -174,7 +161,7 @@ function NavigationScreen({ patient, hospital, routing, onArrive }) {
       </div>
 
       {/* ── Bottom Panel (40%) ──────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-y-auto border-t" style={{ borderColor: '#1e2d3d', background: '#0d1117' }}>
+      <div className="flex-1 flex flex-col overflow-y-auto" style={{ borderColor: '#1e2d3d', background: '#0d1117' }}>
 
         {/* ROW 1: Hospital Destination Card */}
         <div className="px-4 pt-3 pb-3 border-b" style={{ borderColor: '#1e2d3d' }}>

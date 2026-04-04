@@ -47,13 +47,33 @@ class BatchRouteRequest(BaseModel):
     patients: List[RouteRequest]
 
 # --- UTILS ---
+global_roadblocks = []
+
+def add_roadblock(lat: float, lng: float, radius_km: float = 2.0):
+    global_roadblocks.append({'lat': lat, 'lng': lng, 'radius_km': radius_km})
+
+def clear_roadblocks():
+    global_roadblocks.clear()
 
 def calculate_transit_time_min(lat1: float, lon1: float, lat2: float, lon2: float) -> int:
-    """Mock routing API / Euclidean distance converted to minutes"""
+    """Mock routing API / Euclidean distance converted to minutes with dynamic roadblocks"""
     # 1 degree lat/lng ~= 111km. Assume ambulance speed 60km/h (1km/min)
     dist_deg = math.sqrt((lat1 - lat2)**2 + (lon1 - lon2)**2)
     dist_km = dist_deg * 111.0
-    return max(1, int(dist_km * 1.5)) # 1.5 mins per km in city traffic
+    base_time = max(1, int(dist_km * 1.5)) # 1.5 mins per km in city traffic
+    
+    # Twist 2: Roadblock penalty
+    for rb in global_roadblocks:
+        # Distance from the roadblock to the start or end point. Check if roadblock intersects line segment
+        # Using a very simple midpoint check for now to simulate route intersection
+        mid_lat = (lat1 + lat2) / 2
+        mid_lng = (lon1 + lon2) / 2
+        mid_dist_km = math.sqrt((mid_lat - rb['lat'])**2 + (mid_lng - rb['lng'])**2) * 111.0
+
+        if mid_dist_km < rb['radius_km']:
+            base_time += 15 # +15 mins detour penalty
+            
+    return base_time
 
 # --- CORE ALGORITHMS ---
 
