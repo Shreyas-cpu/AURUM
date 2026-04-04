@@ -1,0 +1,17 @@
+[2026-04-03T23:27:22.396Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:2 | TYPE:error | MSG:🚨 INCIDENT LOGGED: Severe Chest Pain reported. Geolocation acquired (Dattawadi). | LOC:{"lat":18.489,"lng":73.85}
+[2026-04-03T23:27:25.153Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:3 | TYPE:success | MSG:🚑 AMB-001 Dispatched. Booking Confirmed. | LOC:{"lat":18.489,"lng":73.85}
+[2026-04-03T23:27:27.381Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:4 | TYPE:info | MSG:ETA 4 mins. SMS instructions sent to caller. | LOC:{"lat":18.489,"lng":73.85}
+[2026-04-03T23:27:30.674Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:5 | TYPE:success | MSG:🩺 Patient Loaded. Ambulance Patient Monitor Activated. | LOC:{"lat":18.4984,"lng":73.8443}
+[2026-04-03T23:27:33.579Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:6 | TYPE:warning | MSG:Routing to closest facility: Hospital A (Clinic). | LOC:{"lat":18.4984,"lng":73.8443}
+[2026-04-03T23:27:35.325Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:7 | TYPE:info | MSG:AURUM APEX Engine analyzing vitals... | LOC:{"lat":18.4984,"lng":73.8443}
+[2026-04-03T23:27:38.660Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:8 | TYPE:error | MSG:⚠️ CRITICAL REROUTE: STEMI detected. Hospital A lacks Cath Lab capacity. Rerouting to Hospital B (Deccan Gymkhana). | LOC:{"lat":18.5002,"lng":73.84515}
+[2026-04-03T23:27:41.878Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:9 | TYPE:success | MSG:Hospital B ECR notified. ETA updated. Pre-arrival Cath Lab prep initiated. | LOC:{"lat":18.5002,"lng":73.84515}
+[2026-04-03T23:27:47.211Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:10 | TYPE:success | MSG:🏥 Arrived at Hospital B. Requesting Stretcher & Crash Cart at Bay 2. | LOC:{"lat":18.5157,"lng":73.84}
+[2026-04-03T23:29:48.286Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:2 | TYPE:error | MSG:🚨 INCIDENT LOGGED: Severe Chest Pain reported. Geolocation acquired (Dattawadi). | LOC:{"lat":18.489,"lng":73.85}
+[2026-04-03T23:29:52.078Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:3 | TYPE:success | MSG:🚑 AMB-001 Dispatched. Booking Confirmed. | LOC:{"lat":18.489,"lng":73.85}
+[2026-04-03T23:29:54.661Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:4 | TYPE:info | MSG:ETA 4 mins. SMS instructions sent to caller. | LOC:{"lat":18.489,"lng":73.85}
+[2026-04-03T23:29:57.874Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:5 | TYPE:success | MSG:🩺 Patient Loaded. Ambulance Patient Monitor Activated. | LOC:{"lat":18.4984,"lng":73.8443}
+[2026-04-03T23:30:00.652Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:6 | TYPE:warning | MSG:Routing to closest facility: Hospital A (Clinic). | LOC:{"lat":18.4984,"lng":73.8443}
+[2026-04-03T23:30:02.682Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:7 | TYPE:info | MSG:AURUM APEX Engine analyzing vitals... | LOC:{"lat":18.4984,"lng":73.8443}
+[2026-04-03T23:30:06.409Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:8 | TYPE:error | MSG:⚠️ CRITICAL REROUTE: STEMI detected. Hospital A lacks Cath Lab capacity. Rerouting to Hospital B (Deccan Gymkhana). | LOC:{"lat":18.5002,"lng":73.84515}
+[2026-04-03T23:30:10.844Z] UUID:SIM-4d684fc9-9230-489c-9c1b-6f0aea28f2db | STEP:9 | TYPE:success | MSG:Hospital B ECR notified. ETA updated. Pre-arrival Cath Lab prep initiated. | LOC:{"lat":18.5002,"lng":73.84515}

@@ -8196,3 +8196,5 @@ export const SPECIALIST_LABELS = {
 export const API_BASE = 'http://localhost:3001/api';
 
 
+e x p o r t   c o n s t   M O C K _ V I T A L S _ P A Y L O A D   =   {   p a t i e n t _ i d :   " P - S I M 0 1 - 0 0 0 " ,   t i m e s t a m p :   n e w   D a t e ( ) . t o I S O S t r i n g ( ) ,   v i t a l s :   {   h e a r t _ r a t e :   1 4 5 ,   b l o o d _ p r e s s u r e _ s y s :   1 6 0 ,   b l o o d _ p r e s s u r e _ d i a :   1 0 0 ,   s p o 2 :   9 2 ,   r e s p i r a t o r y _ r a t e :   2 4 ,   t e m p e r a t u r e :   3 7 . 1   } ,   e c g _ a n o m a l y :   t r u e ,   p a i n _ l e v e l :   9   } ;  
+ 

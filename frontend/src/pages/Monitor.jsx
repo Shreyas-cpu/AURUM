@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Map from '../components/Map';
+import MapEmbed from '../components/shared/MapEmbed';
 import DispatchForm from '../components/DispatchForm';
 
 export default function Monitor() {
@@ -59,7 +59,7 @@ export default function Monitor() {
 
       {/* Main Map Region */}
       <div className="flex-1 relative bg-slate-200 z-0">
-        <Map hospitals={hospitals} activeDispatches={activeDispatches} />
+        <MapEmbed targetHospitalId={null} showAllHospitals={true} />
       </div>
     </div>
   );
