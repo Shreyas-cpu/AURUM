@@ -160,6 +160,12 @@ export default function PatientMonitor() {
   const activePatId = useStore(s => s.activePatientId);
   const vitalsHist = useStore(s => s.vitalsHistory);
   const [sessionActive, setSessionActive] = useState(false);
+
+  useEffect(() => {
+    if (activePatId) {
+      setSessionActive(true);
+    }
+  }, [activePatId]);
   const [lastSync, setLastSync] = useState(new Date());
 
   // Start live vitals stream once session is active
@@ -339,3 +345,4 @@ export default function PatientMonitor() {
     </div>
   );
 }
+

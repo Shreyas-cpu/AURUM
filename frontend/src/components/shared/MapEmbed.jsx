@@ -32,19 +32,31 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
   });
 
   const displayHospitals = useMemo(() => {
-    let visible = showAllHospitals ? hospitals : hospitals.filter(h => h.id === targetHospitalId);
-    
-    // Filter to only hospitals within 15 km of any ambulance
-    // if (ambulances && ambulances.length > 0) {
-    //   visible = visible.filter(h => {
-    //     return ambulances.some(a => {
-    //       const dist = getDistance(a.current_lat, a.current_lng, h.lat, h.lng);
-    //       return dist <= 15;
-    //     });
-    //   });
-    // }
+    // If showAllHospitals is on, limits don't apply
+    if (showAllHospitals) return hospitals;
 
-    return visible;
+    // Filter for active ambulances that are routing to a hospital
+    const activeRouteHosps = new Set(
+      ambulances
+        .filter(a => ['en_route_to_hospital', 'en_route'].includes(a.status) && a.assigned_hospital_id)
+        .map(a => a.assigned_hospital_id)
+    );
+    
+    if (activeRouteHosps.size > 0 && targetHospitalId) {
+      // Focus strictly on the target OR the active routing ones
+      return hospitals.filter(h => activeRouteHosps.has(h.id) || h.id === targetHospitalId);
+    }
+    else if (activeRouteHosps.size > 0) {
+      // Focus strictly on the active routing node
+      return hospitals.filter(h => activeRouteHosps.has(h.id));
+    }
+    else if (targetHospitalId) {
+      // Focus just on the selected one
+      return hospitals.filter(h => h.id === targetHospitalId);
+    }
+
+    // Default: Limit to 15 important hospitals if no routing/target is happening
+    return hospitals.slice(0, 15);
   }, [hospitals, showAllHospitals, targetHospitalId, ambulances]);
 
   const handleMapLoad = useCallback((evt) => {
@@ -150,7 +162,7 @@ export default function MapEmbed({ targetHospitalId, height = '100%', showAllHos
                 type: 'Feature',
                 geometry: {
                   type: 'LineString',
-                  coordinates: [[a.current_lng, a.current_lat], [h.lng, h.lat]]
+                  coordinates: a.route ? a.route : [[a.current_lng, a.current_lat], [h.lng, h.lat]]
                 }
               };
               return (

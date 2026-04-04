@@ -291,17 +291,6 @@ export const useStore = create((set, get) => ({
             message: `Patient ${data.patient_code || data.patient_id} routed to ${data.hospital_name || data.routed_to_hospital_id}.`,
           });
         });
-        socket.on('routing:reroute', (data) => {
-          console.log('[AURUM] ?? ROUTING REROUTE:', data);
-          get().addRoutingEvent(data);
-          // Update patient routing in store if required
-          get().addNotification({
-            type: 'critical',
-            title: 'ROUTE CHANGED',
-            message: typeof data.reason === 'string' ? data.reason : 'New destination assigned.',
-          });
-        });
-
         socket.on('mce:triggered', (data) => {
           console.log('[AURUM] ⚡ MCE Batch Routed:', data);
           get().triggerMCE(data.event_id, data.patient_ids, data.assignments);

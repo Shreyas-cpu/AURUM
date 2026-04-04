@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { Activity, AlertTriangle, Power, Wifi, WifiOff } from 'lucide-react';
+import { Activity, AlertTriangle, Power, Wifi, WifiOff, AlertOctagon } from 'lucide-react';
 import { useStore } from '../../hooks/useStore';
 import { SEVERITY_MAP } from '../../data/mockData';
 import { useAmbulanceLocationBroadcast } from '../../hooks/useSocket';
@@ -86,13 +86,42 @@ export default function AmbulanceLayout() {
   const sev     = activePatient?.predicted_severity;
   const sevMeta = sev ? SEVERITY_MAP[sev] : null;
 
+  const notifications = useStore(s => s.notifications);
+  const dismissNotification = useStore(s => s.dismissNotification);
+  
+  // Find critical reroute notifications
+  const rerouteNotification = notifications.find(n => n.type === 'critical' && n.title === 'ROUTE CHANGED');
+
+  const RerouteModal = () => (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+      <div className="w-full max-w-md bg-[#1a0505] border-2 border-red-600 rounded-2xl shadow-[0_0_80px_rgba(220,38,38,0.4)] p-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
+        <div className="w-20 h-20 bg-red-600/20 rounded-full flex items-center justify-center animate-pulse mb-6">
+          <AlertOctagon size={48} className="text-red-500" />
+        </div>
+        <h1 className="text-4xl font-black text-red-500 mb-2">ROUTE CHANGED</h1>
+        <p className="text-lg text-red-200 font-semibold leading-relaxed mb-8">
+          {rerouteNotification?.message || "New destination assigned."}
+        </p>
+        <button 
+          onClick={() => dismissNotification(rerouteNotification.id)}
+          className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-bold text-xl rounded-xl transition-all shadow-[0_0_20px_rgba(220,38,38,0.5)]"
+        >
+          ACKNOWLEDGE
+        </button>
+      </div>
+    </div>
+  );
+
+
   if (!loggedIn) {
     return <LoginScreen onLogin={(cs) => { setCallSign(cs.toLowerCase().replace('amb', 'amb')); setLoggedIn(true); }} />;
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#080c10', color: '#e8ecef' }}>
-
+    <div className="flex flex-col h-screen overflow-hidden relative"
+      style={{ background: '#080c10', color: '#e8ecef' }}>
+      {rerouteNotification && <RerouteModal />}
+      
       {/* ── Top Bar ─────────────────────────────────────────────── */}
       <header className="h-14 shrink-0 flex items-center justify-between px-4 border-b"
         style={{ background: '#0d1117', borderColor: '#1e2d3d' }}>
