@@ -72,3 +72,5 @@ To experience the system's cross-communication capabilities:
 *   `routing:decision` -> Assigns initial transit destinations.
 *   `routing:reroute` -> Updates active paths and notifies users of diversions.
 *   `hospital:status_update` -> Distributes critical bed/specialist availability.
+
+THANKYOU 
