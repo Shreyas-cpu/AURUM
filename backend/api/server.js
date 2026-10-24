@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { runSim01, stopSim01, MOCK_HOSPITALS, MOCK_AMBULANCE } from './simEngine.js';
+import { setupSwagger } from './swaggerDoc.js';
 import pkg from 'pg';
 const { Pool } = pkg;
 
@@ -18,6 +19,7 @@ const io = new Server(httpServer, {
 // Middleware
 app.use(cors());
 app.use(express.json());
+setupSwagger(app);
 
 // Database connection
 const pool = new Pool({
