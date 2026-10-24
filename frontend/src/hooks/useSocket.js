@@ -55,7 +55,8 @@ export function useVitalsStream(patientId, intervalMs = 15000) {
       try {
         if(store.getState().isConnected) {
           // Push via REST - the backend will broadcast via socket to Hospital & Ambulance tabs
-          await fetch(`http://localhost:3001/api/patients/${patientId}/vitals`, {
+          const apiBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
+          await fetch(`${apiBase}/api/patients/${patientId}/vitals`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(reading)

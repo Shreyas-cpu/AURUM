@@ -57,7 +57,8 @@ export default function Landing() {
 
   const triggerSimBackend = async () => {
     try {
-      await axios.post('http://localhost:3001/api/sim/01/start');
+      const apiBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001').replace(/\/$/, '');
+      await axios.post(`${apiBase}/api/sim/01/start`);
       setSimRunning(true);
       toast.success('Simulation Started across all tabs!');
     } catch(e) {

@@ -16,8 +16,10 @@ import {
   MOCK_ROUTING_EVENTS,
 } from '../data/mockData';
 
-const API_BASE = 'http://localhost:3001/api';
-const WS_BASE = 'http://localhost:3001';
+const RAW_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const BASE_URL = RAW_URL.replace(/\/$/, '');
+const API_BASE = `${BASE_URL}/api`;
+const WS_BASE = BASE_URL;
 
 export const useStore = create((set, get) => ({
   // ─── Connection State ────────────────────────────────────────────────
