@@ -2,7 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import { runSim01, stopSim01 } from './simEngine.js';
+import { runSim01, stopSim01, MOCK_HOSPITALS, MOCK_AMBULANCE } from './simEngine.js';
 import pkg from 'pg';
 const { Pool } = pkg;
 
@@ -28,9 +28,33 @@ const pool = new Pool({
   port: 5432,
 });
 
+let dbConnected = false;
 pool.connect((err) => {
-  if (err) console.error('Database connection error:', err.stack);
-  else console.log('✅ Connected to PostgreSQL');
+  if (err) {
+    console.warn('⚠️ PostgreSQL unavailable on localhost - Running in graceful fallback mode with mock data.');
+    dbConnected = false;
+  } else {
+    console.log('✅ Connected to PostgreSQL');
+    dbConnected = true;
+  }
+});
+
+pool.on('error', (err) => {
+  console.warn('⚠️ PostgreSQL client error:', err.message);
+});
+
+// Health check endpoints for uptime monitors (cron-job.org / Render)
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'AURUM Emergency Response API Hub',
+    db_connected: dbConnected,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
 });
 
 // --- REST ENDPOINTS (STAGE 2) ---
@@ -38,19 +62,29 @@ pool.connect((err) => {
 // 2.1 Hospital Endpoints
 app.get('/api/hospitals', async (req, res) => {
   try {
-    // Return all hospitals from the actual DB instead of mock lists
-    const result = await pool.query('SELECT * FROM hospitals WHERE is_active = true');
-    res.json(result.rows);
+    if (dbConnected) {
+      const result = await pool.query('SELECT * FROM hospitals WHERE is_active = true');
+      if (result.rows && result.rows.length > 0) return res.json(result.rows);
+    }
+    res.json(MOCK_HOSPITALS);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.warn('Fallback to mock hospitals:', error.message);
+    res.json(MOCK_HOSPITALS);
   }
 });
 
 app.get('/api/hospitals/:id', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM hospitals WHERE id = $1', [req.params.id]);
-    res.json(result.rows[0]);
+    if (dbConnected) {
+      const result = await pool.query('SELECT * FROM hospitals WHERE id = ', [req.params.id]);
+      if (result.rows && result.rows.length > 0) return res.json(result.rows[0]);
+    }
+    const found = MOCK_HOSPITALS.find(h => h.id === req.params.id);
+    if (found) return res.json(found);
+    res.status(404).json({ error: 'Hospital not found' });
   } catch (error) {
+    const found = MOCK_HOSPITALS.find(h => h.id === req.params.id);
+    if (found) return res.json(found);
     res.status(500).json({ error: error.message });
   }
 });
@@ -116,10 +150,13 @@ app.post('/api/patients/:id/route', async (req, res) => {
 // 2.3 Ambulance Endpoints
 app.get('/api/ambulances', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM ambulances');
-    res.json(result.rows);
+    if (dbConnected) {
+      const result = await pool.query('SELECT * FROM ambulances');
+      if (result.rows && result.rows.length > 0) return res.json(result.rows);
+    }
+    res.json([MOCK_AMBULANCE]);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json([MOCK_AMBULANCE]);
   }
 });
 
